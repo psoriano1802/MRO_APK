@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:background="@android:color/white"
+    android:layout_marginBottom="4dp"
+    android:elevation="1dp">
+
+    <!-- Artículo -->
+    <TextView
+        android:id="@+id/tv_articulo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="2"
+        android:text="Artículo"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="#333333" />
+
+    <!-- Cantidad -->
+    <TextView
+        android:id="@+id/tv_cantidad"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="1.0"
+        android:inputType="numberDecimal"
+        android:textSize="14sp"
+        android:textColor="#333333" />
+
+    <!-- Unidad -->
+    <TextView
+        android:id="@+id/tv_unidad"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="PZA"
+        android:textSize="14sp"
+        android:textColor="#333333" />
+
+    <!-- Costo Unitario -->
+    <TextView
+        android:id="@+id/tv_costo_unitario"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="2"
+        android:gravity="end"
+        android:text="$0.00"
+        android:inputType="numberDecimal"
+        android:textSize="14sp"
+        android:textColor="#333333" />
+
+    <!-- Importe -->
+    <TextView
+        android:id="@+id/tv_importe"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="2"
+        android:gravity="end"
+        android:text="$0.00"
+        android:inputType="numberDecimal"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="#FF0000" />
+
+    <!-- Ubicación -->
+    <TextView
+        android:id="@+id/tv_descripcion"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="2"
+        android:gravity="center"
+        android:text="Descripcion articulo"
+        android:textSize="14sp"
+        android:textColor="#333333" />
+
+</LinearLayout>
