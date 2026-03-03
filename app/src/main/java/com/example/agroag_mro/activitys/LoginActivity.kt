@@ -55,9 +55,7 @@ class LoginActivity : AppCompatActivity() {
             }
         }
 
-        binding.btnRostro.setOnClickListener {
-            startFaceLogin()
-        }
+
     }
 
     private fun loginManual(user: String, pass: String) {
@@ -97,48 +95,27 @@ class LoginActivity : AppCompatActivity() {
 
 
                         //guardamos el usuario con persitensia
-                        val usuario = items.find { it.usuario != null }
-                        val nombre = items.find { it.nombre != null }
-                        val perfil = items.find { it.perfil_mro != null }
-                        val accesos = items.find { it.accesos != null }
-                        val estatus = items.find { it.estatus != null }
-                        val estatus_mro = items.find { it.estatus_mro != null }
-                        val sucursal = items.find { it.sucursal != null }
+                        val usuario = items.find { it.User != null }
+                        val cvesuc = items.find { it.NoSucursal != null }
+                        val sucursal = items.find { it.Sucursal != null }
+                        val cvealm = items.find { it.NoAlmacen != null }
+                        val alm = items.find { it.Almacen != null }
 
+                        //por validar si se reuqiere ocultar o solo bloquear
+                        //loginUserDao.eliminarPantallas(user)
 
-                        if (estatus?.estatus != "A") {
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(
-                                    this@LoginActivity,
-                                    "Usuario no esta activo, valide con su administrador",
-                                    Toast.LENGTH_SHORT
-                                )
-                                return@withContext false
-                            }
-                        }
-                        if (estatus_mro?.estatus_mro != "1") {
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(
-                                    this@LoginActivity,
-                                    "Usuario no autorizado para utilizar App MRO",
-                                    Toast.LENGTH_SHORT
-                                )
-                                return@withContext false
-                            }
-                        }
-
-                        loginUserDao.eliminarPantallas(user)
                         val usuarioEntity = UsuarioEntity(
-                            usuario = usuario?.usuario ?: "",
-                            nombre = nombre?.nombre ?: "",
-                            perfil_mro = perfil?.perfil_mro ?: "",
-                            sucursal = sucursal?.sucursal ?: "",)
-                        System.out.println("pantallas:"+accesos)
-                        prefs.guardarUsuario(usuario?.usuario ?: "", pass, "")
-                        Globales.usuario = usuario?.usuario
+                            usuario = usuario?.User ?: "",
+                            sucursal = usuario?.Sucursal ?: "",
+                            cve_suc = usuario?.NoSucursal?: "",
+                            cve_alma = usuario?.NoAlmacen ?: "",
+                            almacen = usuario?.Almacen ?:"")
+                        System.out.println("pantallas:"+usuarioEntity)
+                        prefs.guardarUsuario(usuario?.User ?: "", pass, "")
+                        Globales.usuario = usuario?.User
                         Globales.password = pass
 
-                        for (item in accesos?.accesos ?: emptyList()) {
+                        /* for (item in accesos?.accesos ?: emptyList()) {
                             val pantalla = item.pantalla ?: ""
                             val pantallaEntity = PantallasEntity(
                                 usuario = usuario?.usuario ?: "",
@@ -147,7 +124,7 @@ class LoginActivity : AppCompatActivity() {
                             System.out.println("pantallaEntity:"+pantallaEntity)
                             loginUserDao.insertarPantallas(pantallaEntity)
 
-                        }
+                        }*/
 
 
                         loginUserDao.insertar(usuarioEntity)

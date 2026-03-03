@@ -5,14 +5,12 @@ data class LoginResponse(
 )
     data class LoginResult(
         val ok: String?  = null,
-        val usuario: String? = null,
-        val nombre: String? = null,
-        val estatus: String? = null,
-        val estatus_mro: String? = null,
-        val perfil_mro: String? = null,
-        val sucursal: String? = null,
-        val accesos: List<pantallas>? = null,
-        val Err: String? = null
+        val User: String? = null,
+        val Sucursal: String? = null,
+        val NoSucursal: String? = null,
+        val NoAlmacen: String? = null,
+        val Almacen: String? = null,
+        val Msn: String? = null
    )
 
 data class pantallas(

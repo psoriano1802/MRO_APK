@@ -28,7 +28,7 @@ import retrofit2.http.POST
 
 interface ApiService {
     @Headers("SOAPAction:login")
-    @POST("/api_kepler_mro") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
     //activos

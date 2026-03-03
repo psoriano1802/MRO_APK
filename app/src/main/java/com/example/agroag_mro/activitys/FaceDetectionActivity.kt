@@ -31,6 +31,7 @@ class FaceDetectionActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityFaceDetectionBinding
     private lateinit var cameraExecutor: ExecutorService
+    private var isProcessing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,7 +82,10 @@ class FaceDetectionActivity : AppCompatActivity() {
                 val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
                 detector.process(image)
                     .addOnSuccessListener { faces ->
-                        if (faces.isNotEmpty()) {
+                        if (faces.isNotEmpty() && !isProcessing) {
+                            isProcessing = true // Bloqueamos nuevas detecciones
+                            val bitmap = imageProxy.toBitmap()
+                            saveFaceImage(bitmap)
                             // Solo guardamos si no se ha guardado ya
                             runOnUiThread {
                                 Toast.makeText(this@FaceDetectionActivity, "Rostro detectado", Toast.LENGTH_SHORT).show()
@@ -91,12 +95,12 @@ class FaceDetectionActivity : AppCompatActivity() {
 
                                 var intent = Intent(this@FaceDetectionActivity, MainActivity::class.java)
                                 startActivity(intent)
+                                finish()
                             }
 
-                            val bitmap = imageProxy.toBitmap()
-                            saveFaceImage(bitmap)
 
-                            runOnUiThread { finish() }
+
+                            //runOnUiThread { finish() }
                         }
                     }
                     .addOnCompleteListener { imageProxy.close() }
