@@ -2,7 +2,6 @@ package com.example.agroag_mro.activitys
 import android.app.DatePickerDialog
 import com.example.agroag_mro.R
 import android.os.Bundle
-import android.util.Log.e
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -16,7 +15,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.agroag_mro.activitys.ListaOrdenesActivity
 import com.example.agroag_mro.adapters.RefaccionesAdapter
 import com.example.agroag_mro.interfaz.RetrofitClient
 import com.example.agroag_mro.models.AlmacenItem
@@ -27,7 +25,6 @@ import com.example.agroag_mro.models.OrdenItem
 import com.example.agroag_mro.models.PaquetesRequest
 import com.example.agroag_mro.models.SucursalItem
 import com.example.agroag_mro.models.SucursalResponse
-import com.example.agroag_mro.models.itemPaqMO
 import com.example.agroag_mro.models.itemsDoc
 import com.example.agroag_mro.models.modelsUI.ProductoUI
 import com.example.agroag_mro.utils.BusquedaRMBottomSheet

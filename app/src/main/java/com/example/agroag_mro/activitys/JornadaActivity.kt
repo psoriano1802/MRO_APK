@@ -1,6 +1,5 @@
 package com.example.agroag_mro.activitys
 
-import android.R.attr.bitmap
 import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Bitmap
@@ -23,7 +22,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.agroag_mro.R
 import com.example.agroag_mro.data.AppDatabase
 import com.example.agroag_mro.data.UsuarioDao
-import com.example.agroag_mro.databinding.ActivityReporteFallaBinding
+import com.example.agroag_mro.databinding.ActivityJornadaBinding
 import com.example.agroag_mro.interfaz.RetrofitClient.apiService
 import com.example.agroag_mro.models.Login
 import com.example.agroag_mro.models.LoginRequest
@@ -44,8 +43,8 @@ import java.io.File
 import java.io.FileOutputStream
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-class ReporteFallaActivity: AppCompatActivity() {
-    private lateinit var binding: ActivityReporteFallaBinding
+class JornadaActivity: AppCompatActivity() {
+    private lateinit var binding: JornadaActivity
     private lateinit var db: AppDatabase
     private lateinit var loginUserDao: UsuarioDao
     // Referencias a los views
@@ -75,7 +74,7 @@ class ReporteFallaActivity: AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_reporte_falla)
+        setContentView(R.layout.activity_jornada)
 
         usuario = Prefs(this).obtenerUsuario().first.toString()
         pass = Prefs(this).obtenerUsuario().second.toString()
@@ -189,7 +188,7 @@ class ReporteFallaActivity: AppCompatActivity() {
                             }
 
 
-                            val tipoTrabajoAdapter = ArrayAdapter(this@ReporteFallaActivity, android.R.layout.simple_spinner_item, tt)
+                            val tipoTrabajoAdapter = ArrayAdapter(this@JornadaActivity, android.R.layout.simple_spinner_item, tt)
                             tipoTrabajoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                             spinnerTipoTrabajo.adapter = tipoTrabajoAdapter
                             spinnerTipoTrabajo.setSelection(0) //
@@ -306,7 +305,7 @@ class ReporteFallaActivity: AppCompatActivity() {
                         val okItem = reporte.ResponseReporteFalla?.find { it.ok != null }
                         if (okItem?.ok == "1") {
                             //showToast("Reporte enviado exitosamente")
-                           mensajeExitoso(folio,fecha,activo,nombreActivo,dbUser?.nombre.toString(),"Reportada",falla,tipomnto.descripcion,tipoTrabajo.descripcion,detalleFalla,observaciones)
+                           mensajeExitoso(folio,fecha,activo,nombreActivo,dbUser?.usuario.toString(),"Reportada",falla,tipomnto.descripcion,tipoTrabajo.descripcion,detalleFalla,observaciones)
                         }
                     }
                 }else{

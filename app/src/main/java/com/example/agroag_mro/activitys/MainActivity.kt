@@ -19,10 +19,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: MenuViewModel
     private val allitems = listOf(
-        MenuOptions("Reporte de falla", R.drawable.ic_inventory,"FALLA", ReporteFallaActivity::class.java),
-        MenuOptions("Ordenes Asignadas", R.drawable.ic_orders,"ASIGNADAS", ListaOrdenesActivity::class.java),
-        MenuOptions("Solicita Refacciones", R.drawable.ic_reports,"REFACCIONES", SolicitaRefaccionActivity::class.java),
-        MenuOptions("Pantalla 4", R.drawable.ic_settings,"P2", ReporteFallaActivity::class.java)
+        MenuOptions("Jornada", R.drawable.ic_inventory,"JORNADA", JornadaActivity::class.java), //registra el inicio de labores y cargalos datos iniciales, catlogos y si hay cargas iniciales
+        MenuOptions("Ventas", R.drawable.ic_orders,"VENTAS", VentasActivity::class.java), //registra el fin de laboresy termina el dia, no permite abrir dia hasta el dia siguiente
+        MenuOptions("Cobranza", R.drawable.ic_reports,"CXC", SolicitaRefaccionActivity::class.java), //actualiza los datos catalogos, recargas
+        MenuOptions("Pantalla 4", R.drawable.ic_settings,"P2", JornadaActivity::class.java) //
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,10 +33,10 @@ class MainActivity : AppCompatActivity() {
        viewModel = ViewModelProvider(this)[MenuViewModel::class.java]
 
         val userAct = Prefs(this).obtenerUsuario().first
-        System.out.println("userAct:"+userAct)
-        viewModel.obtenerPantallasPermitidas(userAct).observe(this) { pantallas ->
-            val permitidas = pantallas.map { it.pantalla }
-            val visibles= allitems.filter { it.clave in permitidas  }
+       // System.out.println("userAct:"+userAct)
+        //viewModel.obtenerPantallasPermitidas(userAct).observe(this) { pantallas ->
+       //     val permitidas = pantallas.map { it.pantalla }
+            val visibles= allitems
 
             val adapter = MenuAdapter(visibles){ accion ->
                 val intent = Intent(this, accion)
@@ -48,7 +48,7 @@ class MainActivity : AppCompatActivity() {
             // Configurar el escuchador de clics en el adaptador
 
 
-        }
+        //}
 
     }
 

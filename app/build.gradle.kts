@@ -17,8 +17,27 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    flavorDimensions += "environment"
+    productFlavors {
+        create("beta"){
+            dimension = "environment"
+            applicationId = "com.example.agroag_mro.beta"
+            versionNameSuffix = "-BETA"
+            buildConfigField("String","ENVIROMENT","\"BETA\"")
+            buildConfigField("String","BASE_URL", "\"http://keplerqro.dnsalias.com:1960/\"")
+            resValue("string", "app_name", "Seguimiento de Ruta test")
+        }
+        create("prod"){
+            dimension = "environment"
+            applicationId = "com.example.agroag_mro"
+            buildConfigField("String","ENVIROMENT","\"test\"")
+            buildConfigField("String","BASE_URL", "\"http://kepler.lacteosflores.com:8080/\"")
+            resValue("string", "app_name", "Seguimiento de Ruta test")
+        }
+    }
     buildFeatures {
         viewBinding = true
+        buildConfig = true  // Importante para usar BuildConfig
     }
 
     buildTypes {

@@ -11,15 +11,11 @@ import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.Spinner
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.agroag_mro.R
-import com.example.agroag_mro.adapters.MenuOptions
 import com.example.agroag_mro.adapters.OrdenesAdapter
 import com.example.agroag_mro.data.AppDatabase
 import com.example.agroag_mro.data.PantallasEntity
@@ -31,8 +27,6 @@ import com.example.agroag_mro.models.OrdenItem
 import com.example.agroag_mro.models.OrdenesRequest
 import com.example.agroag_mro.models.SucursalItem
 import com.example.agroag_mro.models.SucursalResponse
-import com.example.agroag_mro.models.TipoTrabajos
-import com.example.agroag_mro.models.itemScreen
 import com.example.agroag_mro.utils.Prefs
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -40,7 +34,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-class ListaOrdenesActivity : AppCompatActivity() {
+class VentasActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var etSucursal: Spinner
     private lateinit var adapter: OrdenesAdapter
@@ -64,7 +58,7 @@ class ListaOrdenesActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_lista_ordenes)
+        setContentView(R.layout.activity_ventas)
 
         etSucursal = findViewById(R.id.spinnerSucursal)
         etfechaFinal = findViewById(R.id.etFechaFinal)
@@ -154,7 +148,7 @@ class ListaOrdenesActivity : AppCompatActivity() {
                 }
             }catch (e: Exception){
                 System.out.println("error:"+e)
-                Toast.makeText(this@ListaOrdenesActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@VentasActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -173,7 +167,7 @@ class ListaOrdenesActivity : AppCompatActivity() {
 
             }catch (e: Exception){
                 System.out.println("error:"+e)
-                Toast.makeText(this@ListaOrdenesActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@VentasActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
 
         }
@@ -206,7 +200,7 @@ class ListaOrdenesActivity : AppCompatActivity() {
                 }
             }catch (e: Exception){
                 System.out.println("error:"+e)
-                Toast.makeText(this@ListaOrdenesActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@VentasActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -295,7 +289,7 @@ class ListaOrdenesActivity : AppCompatActivity() {
 
             }catch (e: Exception){
                 System.out.println("error:"+e)
-                Toast.makeText(this@ListaOrdenesActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@VentasActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
 
