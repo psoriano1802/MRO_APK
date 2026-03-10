@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
         MenuOptions("Reporte de falla", R.drawable.ic_inventory,"FALLA", ReporteFallaActivity::class.java),
         MenuOptions("Ordenes Asignadas", R.drawable.ic_orders,"ASIGNADAS", ListaOrdenesActivity::class.java),
         MenuOptions("Solicita Refacciones", R.drawable.ic_reports,"REFACCIONES", SolicitaRefaccionActivity::class.java),
-        MenuOptions("Pantalla 4", R.drawable.ic_settings,"P2", ReporteFallaActivity::class.java)
+        MenuOptions("Valida Orden", R.drawable.ic_settings,"VALIDAORDEN", ValidaOrdenActivity::class.java)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {

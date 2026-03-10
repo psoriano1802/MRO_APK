@@ -5,7 +5,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    private const val BASE_URL = "http://keplerqro.dnsalias.com:1970/" //url real dimeint
+    private const val BASE_URL = "http://keplerqro.dnsalias.com:1970/" //url pruebas grj AGROAG
     //private const val BASE_URL = "http://elmex.erpkepler.net:8097/api_dimeint_inventarios/"// url para pruebas con elmex
     private  val okHttpClient = OkHttpClient.Builder()
         .addInterceptor{chain ->
