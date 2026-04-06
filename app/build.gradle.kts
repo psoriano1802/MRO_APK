@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.agroag_mro"
+    namespace = "com.example.lacteos_flores"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.agroag_mro"
+        applicationId = "com.example.lacteos_flores"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -21,18 +21,18 @@ android {
     productFlavors {
         create("beta"){
             dimension = "environment"
-            applicationId = "com.example.agroag_mro.beta"
+            applicationId = "com.example.lacteos_flores.beta"
             versionNameSuffix = "-BETA"
             buildConfigField("String","ENVIROMENT","\"BETA\"")
             buildConfigField("String","BASE_URL", "\"http://keplerqro.dnsalias.com:1960/\"")
-            resValue("string", "app_name", "Seguimiento de Ruta test")
+            resValue("string", "app_name", "LF Ruta")
         }
         create("prod"){
             dimension = "environment"
-            applicationId = "com.example.agroag_mro"
+            applicationId = "com.example.lacteos_flores"
             buildConfigField("String","ENVIROMENT","\"test\"")
             buildConfigField("String","BASE_URL", "\"http://kepler.lacteosflores.com:8080/\"")
-            resValue("string", "app_name", "Seguimiento de Ruta test")
+            resValue("string", "app_name", "LF Ruta test")
         }
     }
     buildFeatures {
@@ -92,5 +92,7 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
 
+    //GPS
+    implementation(libs.services.location)
 
 }

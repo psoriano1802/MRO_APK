@@ -18,6 +18,7 @@ mlkitscan = "17.2.0"
 camera = "1.3.1"
 lifecycle = "2.7.0"
 okhttp = "4.12.0"
+location = "21.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -50,7 +51,7 @@ camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", versi
 camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camera" }
 
 lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
-
+services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "location"}
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
