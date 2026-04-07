@@ -96,4 +96,10 @@ interface ApiService {
     @POST("/api_kepler_mro") // reemplaza con la URL relativa correcta
     suspend fun getDocumentos(@Body request: LoginRequest): Response<DocumentosResponse>
 
+    //06-04-2026
+    //Implementacion de la pantallavalidar ordemn, realizaran siguientes endpoint
+    //buscar activos relacionados a los usuarios por validar si se agrega a mapeo de loggin o realizar  nueva busqueda
+    //buscar ordenes realacioandos al activos que elusuario ha elegido, (buscaOrdenActivo)
+    //validar ordenes seleccionada, enviara los documentos seleccionados para realizar la modificacion del esatus en la orden de mantenimiento
+
 }
