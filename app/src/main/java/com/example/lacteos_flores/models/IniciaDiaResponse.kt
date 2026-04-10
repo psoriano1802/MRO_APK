@@ -22,3 +22,16 @@ data class TerDia (
     @SerializedName("msn") val msn: String? = null,
     @SerializedName("Fecha_Termina") val err: String? = null
 )
+
+//valida response
+data class ValidaDiaResponse (
+    val ValidaDiaResponse: List<Validadia>? = null
+)
+data class Validadia (
+    val ok: String? = null,
+    val msn: String? = null,
+    @SerializedName("Fecha_Inicio") val fecini: String? = null,
+    @SerializedName("Fecha_Termina") val fecter: String? = null,
+    @SerializedName("Direccion_Inicio") val dirini: String? = null,
+    @SerializedName("Direccion_Termina") val dirter: String? = null
+)

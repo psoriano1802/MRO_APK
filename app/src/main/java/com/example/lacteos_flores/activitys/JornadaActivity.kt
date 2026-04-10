@@ -18,6 +18,8 @@ import com.example.lacteos_flores.models.Login
 import com.example.lacteos_flores.models.ubicacionRequest
 import com.example.lacteos_flores.utils.Prefs
 import com.example.lacteos_flores.R
+import com.example.lacteos_flores.controllers.CatalogosManager
+import com.example.lacteos_flores.models.LoginRequest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 
@@ -37,6 +39,8 @@ class JornadaActivity: AppCompatActivity() {
     private var usuario: String? = null
     private var pass: String? = null
 
+    // Instanciamos el manager (Asegúrate de pasar tu instancia real de Room Database)
+    private lateinit var catalogosManager: CatalogosManager
 
     // 1. Lanzador de permisos en Kotlin
     // Lanzador para solicitar permisos de GPS
@@ -56,22 +60,23 @@ class JornadaActivity: AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_jornada)
-
         usuario = Prefs(this).obtenerUsuario().first.toString()
         pass = Prefs(this).obtenerUsuario().second.toString()
-
         gpsHelper = GpsHelper(this)
+        //inicializamos la base de datos para obtenes informacion del usaurio
+        db = AppDatabase.getDatabase(this)
+        loginUserDao = db.usuarioDao()
+        // Inicializa el manager con tu base de datos
+        // val db = Room.databaseBuilder(...).build()
+        catalogosManager = CatalogosManager(db)
 
         // Inicializar views
-        initViews()
-
+       initViews()
         // obtenemmos fecha actual
         fecha()
-
         // Configurar listeners de botones
         setupButtonListeners()
     }
-
 
     //funcion para inicializar los views
     private fun initViews() {
@@ -90,19 +95,16 @@ class JornadaActivity: AppCompatActivity() {
         val fechaActual = SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis())
         tvFecha.text = fechaActual
     }
-
-    //funcion para configurar los listeners de los botones
+   //funcion para configurar los listeners de los botones
     private fun setupButtonListeners() {
         btnIniDia.setOnClickListener {
             //permitira iniciar el dia de labores
             verificarPermisosYEjecutar(TipoJornada.INICIO)
         }
-
         btnFinDia.setOnClickListener {
             //permitira terminar el dia de labores
             verificarPermisosYEjecutar(TipoJornada.FIN)
         }
-
         btnMenu.setOnClickListener {
             //regresa al menu principal
             finish()
@@ -110,8 +112,6 @@ class JornadaActivity: AppCompatActivity() {
     }
 
     //funcion para enviar datos para iniciar dia de labores
-
-
     private fun verificarPermisosYEjecutar(tipo: TipoJornada) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             ejecutarEnvioDeUbicacion(tipo)
@@ -123,35 +123,46 @@ class JornadaActivity: AppCompatActivity() {
         }
     }
 
+
     private fun ejecutarEnvioDeUbicacion(tipo: TipoJornada) {
-        // 1. Obtenemos la ubicación con tu nueva clase
-        gpsHelper.obtenerUbicacionActual(
-            onSuccess = { lat, lon, address ->
+        // Usamos lifecycleScope para consultar la base de datos en un hilo de fondo
+        lifecycleScope.launch {
+            // 1. Obtenemos el objeto completo del usuario desde la DB
+            // Asumiendo que obtenerUsuario es una función que busca por el ID/User
+            val datosUsuario = loginUserDao.obtenerUsuario(usuario.toString())
 
-                // 2. Llenamos la Data Class con los datos obtenidos
-                val requestData = ubicacionRequest(
-                    login = Login(user = usuario.toString(),pass = pass.toString()),
-                    li = lat.toString(),
-                    lo = lon.toString(),
-                    dire = address,
-                    nom = "Vendedor 2",
-                    lf = lat.toString(),
-                    lof = lon.toString(),
-                    diref = address
+            // Extraemos los datos que necesites (ejemplo: nombre, almacen, etc.)
+            //val nombreUsuario = datosUsuario?. ?: "Usuario Desconocido"
+            val almacenUsuario = datosUsuario?.almacen ?: ""
 
-                )
-                System.out.println("requestData:"+requestData)
-                // 3. Enviamos los datos usando Retrofit
-                enviarDatosAlServidor(requestData,tipo)
-            },
-            onError = { mensajeError ->
-                Toast.makeText(this, mensajeError, Toast.LENGTH_SHORT).show()
-            }
-        )
+            // 2. Procedemos con la ubicación
+            gpsHelper.obtenerUbicacionActual(
+                onSuccess = { lat, lon, address ->
+                    // 3. Construimos el request con los datos de la DB y el GPS
+                    val requestData = ubicacionRequest(
+                        login = Login(user = usuario.toString(), pass = pass.toString()),
+                        li = lat.toString(),
+                        lo = lon.toString(),
+                        dire = address,
+                        nom = almacenUsuario, // <--- Dato obtenido de la tabla Usuario
+                        lf = lat.toString(),
+                        lof = lon.toString(),
+                        diref = address
+                    )
+
+                    println("requestData completo: $requestData")
+
+                    // 4. Enviamos al servidor
+                    enviarDatosAlServidor(requestData, tipo)
+                },
+                onError = { mensajeError ->
+                    showToast(mensajeError)
+                }
+            )
+        }
     }
     //inici la jornada
     private fun enviarDatosAlServidor(request: ubicacionRequest, tipo: TipoJornada) {
-
         ///para visualizar el json enviado al ws
         // Dentro de enviarDatosAlServidor
         val jsonEnviado = com.google.gson.Gson().toJson(request)
@@ -165,12 +176,13 @@ class JornadaActivity: AppCompatActivity() {
                             val res = response.body()
                             val item = res?.IniciaDiaResponse?.getOrNull(0)
                             if (item?.ok.equals("1")){
-                            showToast( item?.msn ?: "Jornada Iniciada")
-                            actualizarInterfaz(true)
+                                showToast( item?.msn ?: "Jornada Iniciada")
+                                actualizarInterfaz(true)
+                                showToast("Comenzando la sincronizacion de catalogos...")
+                                sincronizarCatalogos()
                             }else{
                                 showToast(item?.msn ?: "Error al iniciar la jornada")
                             }
-
                         }
                     }else{
                         // 2. Manejo para FIN (Usa el modelo TerminaDiaResponse)
@@ -178,18 +190,15 @@ class JornadaActivity: AppCompatActivity() {
                         if (response.isSuccessful) {
                             val body = response.body()
                             val item = body?.TerminaDiaResponse?.getOrNull(0)
-
                             if (item?.ok == "1") {
                                 showToast(item.msn ?: "Jornada Terminada")
                                 finish() // Cerramos la actividad al terminar
                             } else {
-                                // En tu modelo TerDia, 'err' está mapeado a 'Fecha_Termina'
                                showToast("Error: ${item?.err}")
                             }
                         }
                     }
                 }catch (e: Exception){
-
                     showToast("Error: ${e.message}")
                 }
             }
@@ -197,7 +206,36 @@ class JornadaActivity: AppCompatActivity() {
 
     }
 
+    //funcion para sincronizar catalgos iniciales y guardar en la base de datos
+    //catalogos clientes, productos (ctrl auxilizares y existencias), estados de cuenta(por validar), documentos,
+    // descargar si las hay, paridades, moneda, bacnos
+    private fun sincronizarCatalogos() {
+        val login = Login(usuario.toString(), pass.toString()) // Usa tus variables reales
+        lifecycleScope.launch {
+            //progressbar para indicar la sincronizacion de catalogos
+            catalogosManager.sincronizarTodos(
+                login = login,
+                onProgress = { mensajeProgreso ->
+                    // Esto se ejecuta cada vez que termina un catálogo
+                    // Ideal para actualizar un TextView de estado (ej. "Descargando artículos...")
+                    showToast(mensajeProgreso)
+                },
+                onResult = { exito, mensajeFinal ->
+                    if (exito) {
+                        // Esto se ejecuta al terminar todo o si ocurre un error fatal
+                        // Puedes ocultar el ProgressBar aquí
+                        showToast(mensajeFinal)
+                    } else {
+                        showToast(mensajeFinal)
+                    }
+                }
+            )
+        }
+    }
+
+
     // Función auxiliar para no repetir código de UI
+
     private fun actualizarInterfaz(inicioExitoso: Boolean) {
         if (inicioExitoso) {
             btnIniDia.isEnabled = false
@@ -206,6 +244,7 @@ class JornadaActivity: AppCompatActivity() {
             btnFinDia.alpha = 1.0f
         }
     }
+
     //funcion para mostrar un mensaje toast
     private fun showToast(mensaje: String) {
         Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()

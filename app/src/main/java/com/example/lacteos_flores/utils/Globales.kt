@@ -12,8 +12,6 @@ import com.example.lacteos_flores.models.AltaDoctosResponse
 import com.example.lacteos_flores.models.Login
 import com.example.lacteos_flores.models.LoginRequest
 import com.example.lacteos_flores.models.PaquetesRequest
-import com.example.lacteos_flores.models.PaquetesResponse
-import com.example.lacteos_flores.models.SucursalResponse
 import com.example.lacteos_flores.models.itemsDoc
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -108,20 +106,7 @@ object Globales{
         }
     }
 
-    suspend fun obtenerSucursales(): Result<SucursalResponse> {
-        return consumeWS {
-            val request = LoginRequest(Login(usuario.toString(),password.toString()))
-            RetrofitClient.apiService.getSucursales(request)
-        }
-    }
 
-    suspend fun obtenesRM(orden: String?, paquete: String?,tipo:String?): Result<PaquetesResponse> {
-            return consumeWS {
-                val login = Login(usuario.toString(), password.toString())
-                val request = PaquetesRequest(login,tipo.toString(),paquete.toString(),orden.toString())
-                RetrofitClient.apiService.getPaquetes(request)
-            }
-    }
 
     suspend fun sendDocto(suc: String,alm: String,gen: String,nat: String,grp: String,tip: String,fec: String,mon: String,pari: String,ref: String,coment: String,soli: String,monto: String,fe: String,te: String,sal: String,proy: String,depto: String,items: List<itemsDoc>): Result<AltaDoctosResponse> {
         return consumeWS {

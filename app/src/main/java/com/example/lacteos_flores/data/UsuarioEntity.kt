@@ -10,6 +10,7 @@ data class UsuarioEntity(
     val cve_suc: String,
     val sucursal: String,
     val cve_alma: String,
-    val almacen: String
+    val almacen: String,
+    val pass: String
 
 )

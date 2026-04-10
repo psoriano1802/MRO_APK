@@ -13,12 +13,11 @@ import com.example.lacteos_flores.interfaz.ApiService
 import com.example.lacteos_flores.interfaz.RetrofitClient
 import com.example.lacteos_flores.models.ubicacionRequest
 import com.example.lacteos_flores.models.Login
-import com.example.lacteos_flores.models.itemTecnico
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.launch
 
 class BusquedaTecBottonSheet(
-    private val onItemSelected: (itemTecnico) -> Unit // Callback al seleccionar un resultado
+    //private val onItemSelected: (itemTecnico) -> Unit // Callback al seleccionar un resultado
 ) : BottomSheetDialogFragment() {
 
     private lateinit var binding: DialogBuscaTecnicoBinding
@@ -57,28 +56,7 @@ class BusquedaTecBottonSheet(
         lifecycleScope.launch {
             try {
 
-                val request = ubicacionRequest(Login(user, pass), "",texto)
-                System.out.println("activosrequest:"+request)
-                val response = apiService.getTecnicos(request)
-                System.out.println("activosresponse:"+response)
-                if (response.isSuccessful) {
-                    val resultados = response.body()
-                    System.out.println("activosresultados:"+resultados)
-                    resultados?.let {activo ->
-                        val okItem = activo.ResponseTecnicos?.find { it.ok != null }
-                        if (okItem?.ok == "1") {
-                            val listaActivos = activo.ResponseTecnicos.filter { it.cve != null }
-                            binding.recyclerResultadosTecnicos.layoutManager = LinearLayoutManager(requireContext())
-                            binding.recyclerResultadosTecnicos.adapter =
-                                ResultadoBuscarTecAdapter(listaActivos) { seleccionado ->
-                                onItemSelected(seleccionado)
-                                dismiss()
-                            }
-                        }
 
-                    }
-
-                }
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Error en la búsqueda", Toast.LENGTH_SHORT).show()
             }

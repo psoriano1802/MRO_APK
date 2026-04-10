@@ -17,14 +17,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.lacteos_flores.adapters.RefaccionesAdapter
 import com.example.lacteos_flores.interfaz.RetrofitClient
-import com.example.lacteos_flores.models.AlmacenItem
 import com.example.lacteos_flores.models.AltaDoctosRequest
 import com.example.lacteos_flores.models.Login
 import com.example.lacteos_flores.models.LoginRequest
 import com.example.lacteos_flores.models.OrdenItem
 import com.example.lacteos_flores.models.PaquetesRequest
-import com.example.lacteos_flores.models.SucursalItem
-import com.example.lacteos_flores.models.SucursalResponse
 import com.example.lacteos_flores.models.itemsDoc
 import com.example.lacteos_flores.models.modelsUI.ProductoUI
 import com.example.lacteos_flores.utils.BusquedaRMBottomSheet
@@ -73,8 +70,7 @@ class SolicitaRefaccionActivity : AppCompatActivity() {
     private var pass: String? = null
     private var sucursalUsurio: String? = null
     private var sucursalID: String? = null
-    private lateinit var sucursales: List<SucursalItem>
-    private lateinit var almacenes: List<AlmacenItem>
+
 
     private lateinit var reporteGenerator: ReportePDFGenerator
     private lateinit var reportePDFGenerator2: ReportePDFGenerator2
@@ -208,21 +204,7 @@ class SolicitaRefaccionActivity : AppCompatActivity() {
     private fun obetenerSucursalesWS() {
         lifecycleScope.launch {
             try {
-                val request = LoginRequest(Login(usuario.toString(), pass.toString()))
-                System.out.println("request:"+request)
-                val response = RetrofitClient.apiService.getSucursales(request)
-                System.out.println("response:"+response)
-                if (response.isSuccessful) {
-                    val sucursalesRes = response.body()
-                    System.out.println("sucursales:" + sucursalesRes)
-                    sucursalesRes?.let { items ->
-                        val okItem = items.ResponseSucursal.find { it.ok != null }
-                        if (okItem?.ok == "1"){
-                            setupSpinnerSucursal(items,sucursalDoc)
-                        }
 
-                    }
-                }
             }catch (e: Exception){
                 System.out.println("error:"+e)
                 Toast.makeText(this@SolicitaRefaccionActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -231,67 +213,6 @@ class SolicitaRefaccionActivity : AppCompatActivity() {
 
     }
 
-
-    private fun setupSpinnerSucursal(response: SucursalResponse, sucursalGuardada: String? = null) {
-        //llenamos el spinner de la sucursal y almacen
-        sucursales = response.ResponseSucursal.filter { it.cve != null }
-        val spSucursales = sucursales.map { it.suc }
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, spSucursales)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinnerSucursal.adapter = adapter
-
-        //la sucursal de dejara fija tomando la que el documento seleccionado tenga asignada
-        sucursalGuardada?.let { guardada ->
-            val index = sucursales.indexOfFirst { it.cve == guardada }
-            if (index >= 0) {
-                spinnerSucursal.isEnabled = false
-                spinnerSucursal.setSelection(index)
-                sucursalID = sucursales[index].cve.toString()
-                // ✅ También cargamos almacenes de esa sucursal directamente
-                cargarSpinnerAlmacen(sucursales[index])
-            }
-        }
-
-        spinnerSucursal.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val seleccionada = sucursales[position]
-                System.out.println("sucursal seleccionada:"+seleccionada.cve)
-                sucursalID = seleccionada.cve.toString()
-                cargarSpinnerAlmacen(seleccionada)
-
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
-
-
-    }
-    // ✅ Función auxiliar para cargar almacenes y fijar el 08
-    private fun cargarSpinnerAlmacen(sucursal: SucursalItem) {
-        almacenes = sucursal.alma ?: emptyList()
-        val spAlmacenes = almacenes.map { it.alm } // asumo que `alma` es el nombre o clave
-        val adapterAlm = ArrayAdapter(this, android.R.layout.simple_spinner_item, spAlmacenes)
-        adapterAlm.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinner_almacen.adapter = adapterAlm
-
-        // ✅ Buscar el índice del almacén "08" y fijarlo
-        val index08 = almacenes.indexOfFirst { it.cvea == "8" }
-        if (index08 >= 0) {
-            spinner_almacen.setSelection(index08)
-            spinner_almacen.isEnabled = false // lo bloqueamos si quieres fijo
-            almacenDoc = almacenes[index08].cvea.toString()
-        }
-
-        spinner_almacen.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val almacenSel = almacenes[position]
-                almacenDoc = almacenSel.cvea.toString()
-                println("Almacén seleccionado: $almacenDoc")
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
-    }
 
     //funcion para reallizar la busqueda de refacciones
     private fun mostrarDialogBusqueda() {
@@ -308,33 +229,7 @@ class SolicitaRefaccionActivity : AppCompatActivity() {
     private fun obtenerRefaccionesWS(paquete: String?, orden: String? ) {
         lifecycleScope.launch {
             try {
-                val request = PaquetesRequest(Login(usuario.toString(), pass.toString()),"1", paquete.toString() ?: "",orden.toString() ?: "")
-                System.out.println("request:"+request)
-                val response = RetrofitClient.apiService.getPaquetes(request)
-                System.out.println("response:"+response)
-                if (response.isSuccessful) {
-                    val ordenes = response.body()
-                    System.out.println("ordenes:" + ordenes)
-                    ordenes?.let { items ->
-                        val okItem = items.ResponsePaquetes.find { it.ok != null }
-                        if (okItem?.ok == "1") {
-                            val  refItems = items.ResponsePaquetes.filter { it.cver != null }
-                            if (refItems.isNotEmpty()){
-                                val lista = mutableListOf<ProductoUI>()
-                                for (item in refItems){
-                                    val paqRef = ProductoUI(item.cver,item.cant!!.toDouble(),item.uni,item.price!!.toDouble(),item.price!!.toDouble(),item.namer,0.0,0.0)
-                                    lista.add(paqRef)
-                                }
-                                articuloAdapter.agregarLista(lista)
-                                System.out.println("ordenesItems:" + lista)
-                            }
 
-
-                        }else{
-                            Toast.makeText(this@SolicitaRefaccionActivity, "${okItem?.err}", Toast.LENGTH_SHORT).show()
-                         }
-                    }
-                }
 
             }catch (e: Exception){
                 System.out.println("error:"+e)
@@ -345,11 +240,11 @@ class SolicitaRefaccionActivity : AppCompatActivity() {
 
 
     private fun dialogBuscarTecnico() {//ws para lista de tecnicos
-        val bottomSheetTec = BusquedaTecBottonSheet{ tecnico ->
+        /*val bottomSheetTec = BusquedaTecBottonSheet{ tecnico ->
             var cvtec = tecnico.name
             tv_solicita.text = cvtec
-        }
-        bottomSheetTec.show(supportFragmentManager, "BusquedaTecBottomSheet")
+        }*/
+        //bottomSheetTec.show(supportFragmentManager, "BusquedaTecBottomSheet")
     }
 
     private fun fecha(){

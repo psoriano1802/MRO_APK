@@ -12,14 +12,14 @@ interface UsuarioDao {
     //obtenemos la sucursal del usuario
 
     //guardamos pantallas
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    /*@Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarPantallas(pantallas: PantallasEntity)
     //consultamos pantallas
     @Query("SELECT * FROM pantallas WHERE usuario = :usuario")
     suspend fun obtenerPantallas(usuario: String): List<PantallasEntity>
     //eliminamos las pantallas del usuario
     @Query("DELETE FROM pantallas WHERE usuario = :usuario")
-    suspend fun eliminarPantallas(usuario: String)
+    suspend fun eliminarPantallas(usuario: String)*/
 
 
 }

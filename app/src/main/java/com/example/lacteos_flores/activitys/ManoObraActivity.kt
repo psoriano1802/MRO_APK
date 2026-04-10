@@ -12,10 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.lacteos_flores.R
 import com.example.lacteos_flores.adapters.RefaccionesAdapter
-import com.example.lacteos_flores.models.AlmacenItem
 import com.example.lacteos_flores.models.OrdenItem
-import com.example.lacteos_flores.models.SucursalItem
-import com.example.lacteos_flores.models.SucursalResponse
 import com.example.lacteos_flores.models.itemsDoc
 import com.example.lacteos_flores.models.modelsUI.ProductoUI
 import com.example.lacteos_flores.utils.BusquedaRMBottomSheet
@@ -60,8 +57,6 @@ class ManoObraActivity: AppCompatActivity() {
     private var pass: String? = null
     private var sucursalUsurio: String? = null
     private var sucursalID: String? = null
-    private lateinit var sucursales: List<SucursalItem>
-    private lateinit var almacenes: List<AlmacenItem>
 
     //parametros recibidos
     var sucursalDoc: String? = null
@@ -136,13 +131,12 @@ class ManoObraActivity: AppCompatActivity() {
             tv_orden_mantenimiento.text = folioDoc
         }
         fecha()
-        obtenerSuc()
 
     }
     //funcion para configurar listeners
     private fun setupListeners() {
         btnBuscarListado.setOnClickListener {
-            obtenerRefaccionesWS(paqDoc,folioDoc)
+
         }
         btnAgregarRefaccion.setOnClickListener {
             mostrarDialogBusqueda()
@@ -178,84 +172,7 @@ class ManoObraActivity: AppCompatActivity() {
         val horaActual = SimpleDateFormat("HH:mm").format(System.currentTimeMillis())
         tvHoraEntrega.text = horaActual
     }
-    private fun obtenerSuc(){
-        lifecycleScope.launch {
-            when (val result = Globales.obtenerSucursales()){
-                is Result.Success -> {
-                   val suc = result.data
-                    setupSpinnerSucursal(suc,sucursalDoc)
-                }
-                is Result.Empty ->{
-                    Globales.showToast(this@ManoObraActivity, "No se encontraron sucursales")
-                }
-                is Result.Error ->{
-                    Globales.showToast(this@ManoObraActivity, "Error al obtener sucursales: ${result.exception.message}")
-                }
-            }
 
-
-        }
-    }
-
-    private fun setupSpinnerSucursal(response: SucursalResponse, sucDoc: String? = null) {
-        //llenamos el spinner de la sucursal y almacen
-        sucursales = response.ResponseSucursal.filter { it.cve != null }
-        val spSucursales = sucursales.map { it.suc }
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, spSucursales)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinnerSucursal.adapter = adapter
-
-        //la sucursal de dejara fija tomando la que el documento seleccionado tenga asignada
-        sucDoc?.let { guardada ->
-            val index = sucursales.indexOfFirst { it.cve == guardada }
-            if (index >= 0) {
-                spinnerSucursal.isEnabled = false
-                spinnerSucursal.setSelection(index)
-                sucursalID = sucursales[index].cve.toString()
-                // ✅ También cargamos almacenes de esa sucursal directamente
-                cargarSpinnerAlmacen(sucursales[index])
-            }
-        }
-
-        spinnerSucursal.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val seleccionada = sucursales[position]
-                System.out.println("sucursal seleccionada:"+seleccionada.cve)
-                sucursalID = seleccionada.cve.toString()
-                cargarSpinnerAlmacen(seleccionada)
-
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
-    }
-
-    // ✅ Función auxiliar para cargar almacenes y fijar el 08
-    private fun cargarSpinnerAlmacen(sucursal: SucursalItem) {
-        almacenes = sucursal.alma ?: emptyList()
-        val spAlmacenes = almacenes.map { it.alm } // asumo que `alma` es el nombre o clave
-        val adapterAlm = ArrayAdapter(this, android.R.layout.simple_spinner_item, spAlmacenes)
-        adapterAlm.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinner_almacen.adapter = adapterAlm
-
-        // ✅ Buscar el índice del almacén "08" y fijarlo
-        val index08 = almacenes.indexOfFirst { it.cvea == "8" }
-        if (index08 >= 0) {
-            spinner_almacen.setSelection(index08)
-            spinner_almacen.isEnabled = false // lo bloqueamos si quieres fijo
-            almacenDoc = almacenes[index08].cvea.toString()
-        }
-
-        spinner_almacen.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val almacenSel = almacenes[position]
-                almacenDoc = almacenSel.cvea.toString()
-                println("Almacén seleccionado: $almacenDoc")
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
-    }
 
     //funcion para reallizar la busqueda de refacciones
     private fun mostrarDialogBusqueda() {
@@ -266,60 +183,21 @@ class ManoObraActivity: AppCompatActivity() {
             val refaccion = ProductoUI(res.cve, 0.0, res.uni,0.0,min,res.descripcion , min,hr)
 
             System.out.println("refaccionMO:"+res)
-            dialogBuscarTecnico(refaccion)
+            //dialogBuscarTecnico(refaccion)
             //articuloAdapter.agregarItem(refaccion)
         }
         bottomSheet.show(supportFragmentManager, "BusquedaRMBottomSheet")
     }
-    private fun dialogBuscarTecnico(refaccion: ProductoUI) {//ws para lista de tecnicos
+   /* private fun dialogBuscarTecnico(refaccion: ProductoUI) {//ws para lista de tecnicos
         val bottomSheetTec = BusquedaTecBottonSheet{ tecnico ->
             val reftecnico= refaccion.copy(descripcion = tecnico.cve)
             System.out.println("reftecnico:"+reftecnico)
             articuloAdapter.agregarItem(reftecnico)
         }
         bottomSheetTec.show(supportFragmentManager, "BusquedaTecBottomSheet")
-    }
+    }*/
 
-    private fun obtenerRefaccionesWS(paquete: String?, orden: String? ) {
-        lifecycleScope.launch {
-            when (val result = Globales.obtenesRM(orden,paquete,"2")) {
-                is Result.Success ->{
-                    val paqRes = result.data
-                    println("refacciones:"+paqRes)
-                    paqRes?.let { mo ->
-                        val okItem = mo.ResponsePaquetes.find { it.ok != null }
-                        if (okItem?.ok == "1") {
-                            val opera = mo.ResponsePaquetes.filter { it.cver != null }
-                            if(opera.isNotEmpty()){
-                                val listMO = mutableListOf<ProductoUI>()
-                                for(item in opera){
-                                    val hr = item.tespe!!.toDouble()
-                                    val min =hr * 60
-                                    val prod = ProductoUI(item.cver,0.0,item.uni,0.0,hr,item.namer,min,hr)
-                                    listMO.add(prod)
-                                }
-                                articuloAdapter.agregarLista(listMO)
-                            }else{
-                                Globales.showToast(this@ManoObraActivity, "No se encontraron refacciones")
-                            }
-                        }else{
-                            Globales.showToast(this@ManoObraActivity, "No se encontraron refacciones")
-                        }
 
-                    }
-                }
-
-                is Result.Empty ->{
-                    Globales.showToast(this@ManoObraActivity, "No se encontraron refacciones")
-                }
-                is Result.Error ->{
-                    Globales.showToast(this@ManoObraActivity, "Error al obtener refacciones: ${result.exception.message}")
-
-                }
-            }
-
-        }
-    }
     private fun enviaSolicitud(){
         // Aquí puedes implementar la lógica para guardar los datos
         lifecycleScope.launch {

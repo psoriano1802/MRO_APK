@@ -102,7 +102,8 @@ class LoginActivity : AppCompatActivity() {
                             sucursal = usuario?.Sucursal ?: "",
                             cve_suc = usuario?.NoSucursal?: "",
                             cve_alma = usuario?.NoAlmacen ?: "",
-                            almacen = usuario?.Almacen ?:"")
+                            almacen = usuario?.Almacen ?:"",
+                            pass = pass.toString())
                         System.out.println("pantallas:"+usuarioEntity)
                         prefs.guardarUsuario(usuario?.User ?: "", pass, "")
                         Globales.usuario = usuario?.User

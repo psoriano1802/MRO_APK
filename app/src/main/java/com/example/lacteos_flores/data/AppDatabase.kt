@@ -1,15 +1,31 @@
 package com.example.lacteos_flores.data
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [UsuarioEntity::class, PantallasEntity::class], version = 4)
+@Database(
+    entities = [UsuarioEntity::class,  DoctosEntity::class, ClientsEntity::class,
+        BancoEntity::class, GastosEntity::class, MonedaEntity::class, ListaPreciosEntity::class,
+    ProductosEntity::class,ExistenciaEntity::class],
+    version = 6
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun usuarioDao(): UsuarioDao
+    abstract fun doctosDao(): DoctosDao
+    abstract fun gastosDao(): GastosDao
+    abstract fun clientsDao(): ClientsDao
+    abstract fun bancoDao(): BancosDao
+    abstract fun monedaDao(): MonedaDao
+   // abstract fun listaPreciosDao(): ListaPreciosDao
+    abstract fun productosDao(): ProductosDao
+    abstract fun existenciasDao(): ExistenciaDao
+
+
 
     companion object {
         @Volatile
@@ -30,7 +46,13 @@ abstract class AppDatabase : RoomDatabase() {
         }
         private val MIGRATION_1_2 = object: Migration(1, 2) {
            override fun migrate(database: SupportSQLiteDatabase) {
-            database.execSQL("DROP TABLE IF EXISTS pantallas")
+            database.execSQL("DROP TABLE IF EXISTS documentos")
+               database.execSQL("DROP TABLE IF EXISTS documentos")
+               database.execSQL("DROP TABLE IF EXISTS documentos")
+               database.execSQL("DROP TABLE IF EXISTS documentos")
+               database.execSQL("DROP TABLE IF EXISTS documentos")
+               database.execSQL("DROP TABLE IF EXISTS documentos")
+               database.execSQL("DROP TABLE IF EXISTS documentos")
            }
         }
     }

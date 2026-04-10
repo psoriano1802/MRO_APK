@@ -25,8 +25,6 @@ import com.example.lacteos_flores.models.Login
 import com.example.lacteos_flores.models.LoginRequest
 import com.example.lacteos_flores.models.OrdenItem
 import com.example.lacteos_flores.models.OrdenesRequest
-import com.example.lacteos_flores.models.SucursalItem
-import com.example.lacteos_flores.models.SucursalResponse
 import com.example.lacteos_flores.utils.Prefs
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -48,7 +46,6 @@ class VentasActivity : AppCompatActivity() {
     //vairables locales
     private var usuario: String? = null
     private var pass: String? = null
-    private lateinit var sucursales: List<SucursalItem>
     private var sucursalID: String? = null
     private var sucursalUsurio: String? = null
 
@@ -124,24 +121,7 @@ class VentasActivity : AppCompatActivity() {
     private fun obtenerPantallasWS(){
         lifecycleScope.launch {
             try {
-                val request = LoginRequest(Login(usuario.toString(), pass.toString()))
-                val response = RetrofitClient.apiService.getPantallas(request)
-                if (response.isSuccessful) {
-                    val pantallas = response.body()
-                    pantallas?.let { items ->
-                        val okItem = items.ResponsePantallas.find { it.ok != null }
-                        if (okItem?.ok == "1") {
-                            listaPantallas.clear() // limpiar antes de llenar
-                           items.ResponsePantallas.forEach {
-                               //filtramos solo los que tienen el name != null
 
-
-                           }
-                            System.out.println("Pantllas"+listaPantallas)
-                        }
-                    }
-
-                }
             }catch (e: Exception){
                 System.out.println("error:"+e)
                 Toast.makeText(this@VentasActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -156,10 +136,7 @@ class VentasActivity : AppCompatActivity() {
             try {
                 val usuario = loginUserDao.obtenerUsuario(usuario.toString())
                 sucursalUsurio = usuario?.sucursal
-                val listScreenUser = loginUserDao.obtenerPantallas(usuario?.usuario.toString())
-                System.out.println("listScreenUser:"+listScreenUser)
-                listaPantallas.clear()
-                listaPantallas.addAll(listScreenUser)
+
 
             }catch (e: Exception){
                 System.out.println("error:"+e)
@@ -179,21 +156,7 @@ class VentasActivity : AppCompatActivity() {
     private fun obetenerSucursalesWS() {
         lifecycleScope.launch {
             try {
-                val request = LoginRequest(Login(usuario.toString(), pass.toString()))
-                System.out.println("request:"+request)
-                val response = RetrofitClient.apiService.getSucursales(request)
-                System.out.println("response:"+response)
-                if (response.isSuccessful) {
-                    val sucursalesRes = response.body()
-                    System.out.println("sucursales:" + sucursalesRes)
-                    sucursalesRes?.let { items ->
-                        val okItem = items.ResponseSucursal.find { it.ok != null }
-                        if (okItem?.ok == "1"){
-                            setupSpinnerSucursal(items,sucursalUsurio)
-                        }
 
-                    }
-                }
             }catch (e: Exception){
                 System.out.println("error:"+e)
                 Toast.makeText(this@VentasActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -201,34 +164,7 @@ class VentasActivity : AppCompatActivity() {
         }
 
     }
-    //funcion para configurar el spinner de sucursales
-    private fun setupSpinnerSucursal(response: SucursalResponse, sucursalGuardada: String? = null ){
-        sucursales = response.ResponseSucursal.filter { it.cve != null }
-        val spSucursales = sucursales.map { it.suc }
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, spSucursales)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        etSucursal.adapter = adapter
 
-        //si el usuario tiene una sucursal asignada se dejara fija la sucursal
-        sucursalGuardada?.let { guardada ->
-            val index = sucursales.indexOfFirst { it.cve == guardada }
-            if (index >= 0) {
-                etSucursal.isEnabled = false
-                etSucursal.setSelection(index)
-                sucursalID = sucursales[index].cve.toString()
-            }
-        }
-
-        etSucursal.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val seleccionada = sucursales[position]
-                System.out.println("sucursal seleccionada:"+seleccionada.cve)
-                sucursalID = seleccionada.cve.toString()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
-    }
     private fun showDatePicker(campoFecha: EditText) {
         val calendario = Calendar.getInstance()
 
@@ -249,38 +185,6 @@ class VentasActivity : AppCompatActivity() {
         listaOrdenes.clear()
         lifecycleScope.launch {
             try {
-
-                val fechaInicial = etfechaInicial.text.toString()
-                val fechaFinal = etfechaFinal.text.toString()
-                val atrasadas = if (checkAtrasadas.isChecked) "S" else "N"
-
-                //mandamos el request de OrdenesRequest
-                val request = OrdenesRequest(Login(usuario.toString(), pass.toString()), fechaInicial, fechaFinal,
-                    sucursalID.toString(), atrasadas)
-                System.out.println("request:"+request)
-                val response = RetrofitClient.apiService.getOrdenes(request)
-                System.out.println("response:"+response)
-                if (response.isSuccessful) {
-
-                    val ordenes = response.body()
-                    System.out.println("ordenes:"+ordenes)
-                    ordenes?.let { items ->
-                        val okItem = items.ResponseOrdenesAsig.find { it.ok != null }
-                        if (okItem?.ok == "1") {
-                            listaOrdenes.clear()
-                            val ordenesItems = items.ResponseOrdenesAsig.filter { it.folio != null }
-
-                            for (orden in ordenesItems) {
-                                //ord.add(OrdenItem(null,orden.folio!!,null, orden.nomAct!!,null, orden.tipo!!,null,null,null,null,null,null,null,null,null))
-                                listaOrdenes.add(OrdenItem(null,orden.folio!!,orden.activos!!, orden.nomAct!!,orden.suc!!, orden.tipo!!,null,null,orden.cc!!,orden.gen!!,orden.nat!!,orden.grp!!,orden.tip!!,null,orden.paq!!,null))
-                            }
-                           // listaOrdenes.addAll(ord)
-                            System.out.println("listaOrdenes:"+listaOrdenes)
-                            adapter.notifyDataSetChanged()
-                        }
-                    }
-                }
-
 
 
             }catch (e: Exception){
