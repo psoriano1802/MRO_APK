@@ -23,6 +23,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.launch
 
 class BusquedaBottomSheet(
+    private val tipobusqueda: String,
     private val onItemSelected: (Activos) -> Unit // Callback al seleccionar un resultado
 ) : BottomSheetDialogFragment() {
 
@@ -58,7 +59,11 @@ class BusquedaBottomSheet(
             val opcion = binding.spinnerOpciones.selectedItem.toString()
             //obtenermosel primer elemento del spinner
             val opcionSeleccionada = opcion.split(" - ").first()
-            buscar(opcionSeleccionada, texto)
+            if(tipobusqueda.equals("1")){
+                buscar(opcionSeleccionada, texto)
+            }else{
+                buscarAU(opcionSeleccionada, texto)
+            }
         }
     }
 
@@ -107,6 +112,39 @@ class BusquedaBottomSheet(
                     System.out.println("activosresultados:"+resultados)
                     resultados?.let {activo ->
                         val okItem = activo.ResponseActivos?.find { it.ok != null }
+                        if (okItem?.ok == "1") {
+                            val listaActivos = activo.ResponseActivos.filter { it.cve != null }
+                            binding.recyclerResultados.layoutManager = LinearLayoutManager(requireContext())
+                            binding.recyclerResultados.adapter = ResultadoAdapter(listaActivos) { seleccionado ->
+                                onItemSelected(seleccionado)
+                                dismiss()
+                            }
+                        }
+
+                    }
+
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Error en la búsqueda", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    private fun buscarAU(opcion: String, texto: String) {
+        lifecycleScope.launch {
+            try {
+
+                val request = ActivoRequest(Login(user, pass), opcion, texto)
+                System.out.println("activosrequestUA:"+request)
+                val response = apiService.getActivoUsr(request)
+                System.out.println("activosresponseUA1:"+response)
+                //imprimimos el json contruido
+                println("activosresponseUA:"+response.body())
+                if (response.isSuccessful) {
+                    val resultados = response.body()
+                    println("activosresultadosUARes:"+resultados)
+                    resultados?.let {activo ->
+                        val okItem = activo.ResponseActivos?.find { it.ok != null }
+                        System.out.println("activosresultadosokua:"+okItem)
                         if (okItem?.ok == "1") {
                             val listaActivos = activo.ResponseActivos.filter { it.cve != null }
                             binding.recyclerResultados.layoutManager = LinearLayoutManager(requireContext())

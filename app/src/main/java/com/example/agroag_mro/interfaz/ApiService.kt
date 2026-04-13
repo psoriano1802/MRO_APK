@@ -10,6 +10,7 @@ import com.example.agroag_mro.models.LoginRequest
 import com.example.agroag_mro.models.LoginResponse
 import com.example.agroag_mro.models.OrdenesRequest
 import com.example.agroag_mro.models.OrdenesResponse
+import com.example.agroag_mro.models.OrdenesResponseActivo
 import com.example.agroag_mro.models.PantallasResponse
 import com.example.agroag_mro.models.PaquetesRequest
 import com.example.agroag_mro.models.PaquetesResponse
@@ -99,7 +100,15 @@ interface ApiService {
     //06-04-2026
     //Implementacion de la pantallavalidar ordemn, realizaran siguientes endpoint
     //buscar activos relacionados a los usuarios por validar si se agrega a mapeo de loggin o realizar  nueva busqueda
+    @Headers("SOAPAction:Bus_Activo_Usr")
+    @POST("/api_kepler_mro") // reemplaza con la URL relativa correcta
+    suspend fun getActivoUsr(@Body request: ActivoRequest): Response<ActivosResponse>
+
     //buscar ordenes realacioandos al activos que elusuario ha elegido, (buscaOrdenActivo)
+    @Headers("SOAPAction:Bus_Orden_Activo")
+    @POST("/api_kepler_mro")
+    suspend fun getOrdenesActivo(@Body request: OrdenesRequest): Response<OrdenesResponse>
+
     //validar ordenes seleccionada, enviara los documentos seleccionados para realizar la modificacion del esatus en la orden de mantenimiento
 
 }

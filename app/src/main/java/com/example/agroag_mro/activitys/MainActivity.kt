@@ -22,6 +22,7 @@ class MainActivity : AppCompatActivity() {
         MenuOptions("Reporte de falla", R.drawable.ic_inventory,"FALLA", ReporteFallaActivity::class.java),
         MenuOptions("Ordenes Asignadas", R.drawable.ic_orders,"ASIGNADAS", ListaOrdenesActivity::class.java),
         MenuOptions("Solicita Refacciones", R.drawable.ic_reports,"REFACCIONES", SolicitaRefaccionActivity::class.java),
+        MenuOptions("Mano de Obra", R.drawable.ic_settings,"MANOOBRA", ManoObraActivity::class.java),
         MenuOptions("Valida Orden", R.drawable.ic_settings,"VALIDAORDEN", ValidaOrdenActivity::class.java)
     )
 
@@ -37,7 +38,6 @@ class MainActivity : AppCompatActivity() {
         viewModel.obtenerPantallasPermitidas(userAct).observe(this) { pantallas ->
             val permitidas = pantallas.map { it.pantalla }
             val visibles= allitems.filter { it.clave in permitidas  }
-
             val adapter = MenuAdapter(visibles){ accion ->
                 val intent = Intent(this, accion)
                 startActivity(intent)
@@ -46,8 +46,6 @@ class MainActivity : AppCompatActivity() {
             binding.recyclerViewMenu.adapter = adapter
 
             // Configurar el escuchador de clics en el adaptador
-
-
         }
 
     }

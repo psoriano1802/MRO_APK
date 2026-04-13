@@ -27,3 +27,21 @@ data class OrdenItem(
 
 
 ): Serializable
+
+//para tomar las ordenes del actuvo por usuarios
+data class OrdenesResponseActivo (
+    val ResponseBusActUsr: List<OrdenItemActivo>
+)
+data class OrdenItemActivo(
+    val ok:String? = null,
+    @SerializedName("OrdenM")  val orden:String? = null,
+    @SerializedName("Tipo")  val tipo: String?= null,
+    @SerializedName("ABC")  val abc: String?= null,
+    @SerializedName("Activo")  val activo: String?= null,
+    @SerializedName("NomActivo")  val nactivo: String?= null,
+    @SerializedName("CvePaque")  val paque: String?= null,
+    @SerializedName("NomPaque")  val npaque: String?= null,
+    @SerializedName("Observaciones")  val obser: String?= null,
+
+)
+

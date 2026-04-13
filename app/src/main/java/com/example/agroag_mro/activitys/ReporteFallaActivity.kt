@@ -259,7 +259,7 @@ class ReporteFallaActivity: AppCompatActivity() {
     }
     //funcion para mostrar el dialogo de busqueda de activos
     private fun mostrarDialogoBusquedaActivos   () {
-        val bottomSheet = BusquedaBottomSheet { resultadoSeleccionado ->
+        val bottomSheet = BusquedaBottomSheet("1") { resultadoSeleccionado ->//tipo de busqueda 1 para buscar activos por tipo M,C,E,U, etc y 2 para busqueda de activos por usuario
             tvActvio.text = resultadoSeleccionado.name
             tv_activocve.text = resultadoSeleccionado.cve
         }

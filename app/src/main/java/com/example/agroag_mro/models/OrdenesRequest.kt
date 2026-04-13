@@ -9,3 +9,9 @@ data class OrdenesRequest (
     @SerializedName("Sucursal") val suc: String,
     @SerializedName("atrasadas") val atras: String
 )
+
+// para solotraerordenes del activo delusuario
+data class OrdenesRequestActivo (
+    val login: Login,
+    @SerializedName("Activo") val activo: String,
+)

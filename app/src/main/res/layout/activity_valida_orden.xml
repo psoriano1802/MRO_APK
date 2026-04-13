@@ -109,6 +109,7 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:hint=""
+                    android:textColor="@color/black"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/lbl_activo" />
@@ -143,15 +144,33 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/cl_activo">
 
-                <TextView
+               <TextView
                     android:id="@+id/lbl_documentos"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:text="Documentos pendientes"
                     android:textColor="#666666"
                     android:textSize="14sp"
+                    app:layout_constraintBottom_toBottomOf="@id/btnBusOrdenAct"
+                    app:layout_constraintEnd_toStartOf="@+id/btnBusOrdenAct"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintTop_toTopOf="@id/btnBusOrdenAct" />
+                />
+                <Button
+                    android:id="@+id/btnBusOrdenAct"
+                    android:text="Buscar "
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="16dp"
+                    android:backgroundTint="#2196F3"
+                    android:elevation="4dp"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    />
 
                 <!-- RecyclerView con altura flexible pero restringida -->
                 <androidx.recyclerview.widget.RecyclerView
@@ -163,7 +182,7 @@
                     app:layout_constraintHeight_max="300dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/lbl_documentos"
+                    app:layout_constraintTop_toBottomOf="@id/btnBusOrdenAct"
                     tools:listitem="@android:layout/simple_list_item_1" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>

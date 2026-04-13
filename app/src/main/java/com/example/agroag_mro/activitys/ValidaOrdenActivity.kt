@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.agroag_mro.R
 import com.example.agroag_mro.adapters.DocumentosAdapter
 import com.example.agroag_mro.models.modelsUI.DocumentoUI
+import com.example.agroag_mro.utils.BusquedaBottomSheet
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -73,7 +74,7 @@ class ValidaOrdenActivity : AppCompatActivity() {
     private fun configurarEventos() {
 
         tvActivo.setOnClickListener {
-            abrirBusquedaActivo()
+            mostrarDialogoBusquedaActivos()
         }
 
         btnValidar.setOnClickListener {
@@ -84,6 +85,16 @@ class ValidaOrdenActivity : AppCompatActivity() {
     private fun abrirBusquedaActivo() {
         // Aquí puedes abrir tu BottomSheet
         Toast.makeText(this, "Abrir búsqueda de activo", Toast.LENGTH_SHORT).show()
+    }
+    //funcion para mostrar el dialogo de busqueda de activos
+    private fun mostrarDialogoBusquedaActivos   () {
+        val bottomSheet = BusquedaBottomSheet("2") { resultadoSeleccionado ->
+            tvActivo.text = resultadoSeleccionado.cve
+            etDescripcionActivo.text = resultadoSeleccionado.name
+        }
+        bottomSheet.show(supportFragmentManager, "BusquedaBottomSheet")
+
+
     }
 
     private fun validarDocumentos() {
