@@ -6,20 +6,20 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.lacteos_flores.R
-import com.example.lacteos_flores.models.itemsDoc
+import com.example.lacteos_flores.data.ClientsEntity
 
 class ResultadoBuscarTecAdapter(
-    private val lista: List<itemsDoc>,
-    private val onClick: (itemsDoc) -> Unit
+    private val lista: List<ClientsEntity>,
+    private val onClick: (ClientsEntity) -> Unit
 ) : RecyclerView.Adapter<ResultadoBuscarTecAdapter.ViewHolder>() {
 
     inner class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         val nombre: TextView = view.findViewById(R.id.txtNombre)
         val descripcion: TextView = view.findViewById(R.id.txtDescripcion)
 
-        fun bind(resultado: itemsDoc) {
-            nombre.text = resultado.cant
-            descripcion.text = resultado.uni
+        fun bind(resultado: ClientsEntity) {
+            nombre.text = resultado.clave
+            descripcion.text = resultado.nombre
             view.setOnClickListener { onClick(resultado) }
         }
     }

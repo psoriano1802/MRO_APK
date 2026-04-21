@@ -16,7 +16,8 @@ import com.example.lacteos_flores.models.ubicacionRequest
 import com.example.lacteos_flores.models.itemsDoc
 import com.example.lacteos_flores.models.Login
 import com.example.lacteos_flores.models.LoginRequest
-import com.example.lacteos_flores.models.TiposActivoResponse
+import com.example.lacteos_flores.models.ProductosResponse
+
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.launch
 
@@ -70,8 +71,8 @@ class BusquedaBottomSheet(
             }
         }
     }
-    private fun setupTiposActivo(response: TiposActivoResponse ) {
-        val tiposActivo = response.ResponseTiposActivos?.filter { it.cve != null  }
+    private fun setupTiposActivo(response: ProductosResponse ) {
+        val tiposActivo = response.ResponseProductos?.filter { it.cve != null  }
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, tiposActivo?.map { "${it.cve} - ${it.name}" } ?: emptyList())
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.spinnerOpciones.adapter = adapter

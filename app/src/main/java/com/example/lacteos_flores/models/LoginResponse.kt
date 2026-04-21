@@ -10,6 +10,7 @@ data class LoginResponse(
         val NoSucursal: String? = null,
         val NoAlmacen: String? = null,
         val Almacen: String? = null,
+        val Lista: String? = null,
         val Msn: String? = null
    )
 

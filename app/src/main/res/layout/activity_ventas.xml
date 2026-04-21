@@ -1,174 +1,228 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
+    android:fillViewport="true"
     android:background="@android:color/white">
 
-    <EditText
-        android:id="@+id/etAlmacen"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:hint="Almacen Ruta 00"
-        android:background="@drawable/custom_input_background"
-        android:padding="10dp"
-        android:textAlignment="center"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <EditText
-        android:id="@+id/etFecha"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:hint="FECHA"
-        android:padding="10dp"
-        android:background="@drawable/custom_input_background"
-        app:layout_constraintEnd_toStartOf="@+id/etMoneda"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/etAlmacen"
-        app:layout_constraintHorizontal_weight="1"/>
-
-    <EditText
-        android:id="@+id/etMoneda"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:hint="MONEDA"
-        android:padding="10dp"
-        android:background="@drawable/custom_input_background"
-        app:layout_constraintBottom_toBottomOf="@+id/etFecha"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/etFecha"
-        app:layout_constraintTop_toTopOf="@+id/etFecha"
-        app:layout_constraintHorizontal_weight="1"/>
-
-    <View
-        android:id="@+id/divider1"
-        android:layout_width="match_parent"
-        android:layout_height="4dp"
-        android:layout_marginTop="12dp"
-        android:background="#CCCCCC"
-        app:layout_constraintTop_toBottomOf="@id/etFecha" />
-
-    <EditText
-        android:id="@+id/etCodigoCliente"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:hint="CLIENTE"
-        android:padding="10dp"
-        android:background="@drawable/custom_input_background"
-        app:layout_constraintEnd_toStartOf="@+id/btnBuscarCliente"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/divider1" />
-
-    <Button
-        android:id="@+id/btnBuscarCliente"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:text="BUSCAR CLIENTE"
-        android:textColor="@android:color/white"
-        app:layout_constraintBottom_toBottomOf="@+id/etCodigoCliente"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/etCodigoCliente" />
-
-    <EditText
-        android:id="@+id/etNombreCliente"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:hint="NOMBRE"
-        android:padding="10dp"
-        android:background="@drawable/custom_input_background"
-        app:layout_constraintTop_toBottomOf="@id/etCodigoCliente" />
+        android:padding="16dp">
 
-    <View
-        android:id="@+id/divider2"
-        android:layout_width="match_parent"
-        android:layout_height="4dp"
-        android:layout_marginTop="12dp"
-        android:background="#CCCCCC"
-        app:layout_constraintTop_toBottomOf="@id/etNombreCliente" />
+        <TextView
+            android:id="@+id/tvAlmacen"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="Almacen Ruta 00"
+            android:padding="1dp"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            android:textAlignment="center"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-    <EditText
-        android:id="@+id/etProducto"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:hint="PRODUCTO"
-        android:padding="10dp"
-        android:background="@drawable/custom_input_background"
-        app:layout_constraintEnd_toStartOf="@+id/btnBuscarProducto"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/divider2" />
+        <EditText
+            android:id="@+id/etFecha"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="FECHA"
+            android:padding="10dp"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:background="@drawable/custom_input_background"
+            app:layout_constraintTop_toBottomOf="@id/tvAlmacen"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/etMoneda"
+            app:layout_constraintHorizontal_weight="1"/>
 
-    <Button
-        android:id="@+id/btnBuscarProducto"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:text="BUSCAR PRODUCTO"
-        android:textColor="@android:color/white"
-        app:layout_constraintBottom_toBottomOf="@+id/etProducto"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/etProducto" />
+        <EditText
+            android:id="@+id/etMoneda"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:hint="MONEDA"
+            android:visibility="invisible"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            android:padding="10dp"
+            android:background="@drawable/custom_input_background"
+            app:layout_constraintTop_toTopOf="@id/etFecha"
+            app:layout_constraintStart_toEndOf="@+id/etFecha"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_weight="1"/>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvProductos"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="8dp"
-        android:background="@drawable/custom_input_background"
-        app:layout_constraintBottom_toTopOf="@+id/etSubTotal"
-        app:layout_constraintTop_toBottomOf="@id/etProducto" />
+        <Spinner
+            android:id="@+id/spinnerTipoDoc"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/custom_input_background"
+            app:layout_constraintTop_toBottomOf="@id/etFecha"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/spinnerTipoRfc"
+            app:layout_constraintHorizontal_weight="1"/>
 
-    <EditText
-        android:id="@+id/etSubTotal"
-        android:layout_width="150dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
-        android:hint="Sub Total"
-        android:background="@drawable/custom_input_background"
-        android:padding="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/etIva"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <Spinner
+            android:id="@+id/spinnerTipoRfc"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="16dp"
+            android:visibility="invisible"
+            android:background="@drawable/custom_input_background"
+            app:layout_constraintTop_toTopOf="@id/spinnerTipoDoc"
+            app:layout_constraintStart_toEndOf="@+id/spinnerTipoDoc"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_weight="1"/>
 
-    <EditText
-        android:id="@+id/etIva"
-        android:layout_width="150dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
-        android:hint="IVA"
-        android:background="@drawable/custom_input_background"
-        android:padding="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/etTotal"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <View
+            android:id="@+id/divider1"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginTop="12dp"
+            android:background="#CCCCCC"
+            app:layout_constraintTop_toBottomOf="@id/spinnerTipoDoc" />
 
-    <EditText
-        android:id="@+id/etTotal"
-        android:layout_width="150dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:hint="Total"
-        android:background="@drawable/custom_input_background"
-        android:padding="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/btnAceptar"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <EditText
+            android:id="@+id/etCodigoCliente"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="CLIENTE"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            android:padding="10dp"
+            android:background="@drawable/custom_input_background"
+            app:layout_constraintTop_toBottomOf="@id/divider1"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/btnBuscarCliente" />
 
-    <Button
-        android:id="@+id/btnAceptar"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="ACEPTAR"
-        android:textColor="@android:color/white"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        <Button
+            android:id="@+id/btnBuscarCliente"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="BUSCAR"
+            app:layout_constraintTop_toTopOf="@id/etCodigoCliente"
+            app:layout_constraintBottom_toBottomOf="@id/etCodigoCliente"
+            app:layout_constraintEnd_toEndOf="parent" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <EditText
+            android:id="@+id/etNombreCliente"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="NOMBRE"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            android:padding="10dp"
+            android:background="@drawable/custom_input_background"
+            app:layout_constraintTop_toBottomOf="@id/etCodigoCliente" />
+
+        <View
+            android:id="@+id/divider2"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginTop="12dp"
+            android:background="#CCCCCC"
+            app:layout_constraintTop_toBottomOf="@id/etNombreCliente" />
+
+        <EditText
+            android:id="@+id/etProducto"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="PRODUCTO"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            android:padding="10dp"
+            android:visibility="invisible"
+            android:background="@drawable/custom_input_background"
+            app:layout_constraintTop_toBottomOf="@id/divider2"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/btnBuscarProducto" />
+
+        <Button
+            android:id="@+id/btnBuscarProducto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="BUSCAR"
+            app:layout_constraintTop_toTopOf="@id/etProducto"
+            app:layout_constraintBottom_toBottomOf="@id/etProducto"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvProductos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/custom_input_background"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/etProducto" />
+
+        <EditText
+            android:id="@+id/etSubTotal"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="Sub Total"
+            android:background="@drawable/custom_input_background"
+            android:padding="8dp"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            app:layout_constraintTop_toBottomOf="@id/rvProductos"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <EditText
+            android:id="@+id/etIva"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:hint="IVA"
+            android:background="@drawable/custom_input_background"
+            android:padding="8dp"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            app:layout_constraintTop_toBottomOf="@id/etSubTotal"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <EditText
+            android:id="@+id/etTotal"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:hint="Total"
+            android:background="@drawable/custom_input_background"
+            android:padding="8dp"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            app:layout_constraintTop_toBottomOf="@id/etIva"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <Button
+            android:id="@+id/btnAceptar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="16dp"
+            android:text="ACEPTAR"
+            app:layout_constraintTop_toBottomOf="@id/etTotal"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

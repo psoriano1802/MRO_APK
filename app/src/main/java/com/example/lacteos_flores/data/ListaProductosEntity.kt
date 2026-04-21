@@ -6,9 +6,8 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "productos")//catalogos general de productos(lista del productos)
 data class ProductosEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val clave: String,
+
+    @PrimaryKey val clave: String,
     val descripcion: String,
     val cb: String,
     val unidad: String,
@@ -24,6 +23,7 @@ data class ProductosEntity(
     val lotesf: String,
     val tmc: String,
     val ubicacionn: String,
-    val pedimento: String
+    val pedimento: String,
+    val existencia: Double
 )
 

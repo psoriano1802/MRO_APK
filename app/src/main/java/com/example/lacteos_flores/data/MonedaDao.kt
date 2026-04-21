@@ -8,7 +8,7 @@ import androidx.room.Query
 @Dao
 interface MonedaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertar(moneda: MonedaEntity)
+    suspend fun insertar(moneda: List<MonedaEntity>)
 
     @Query("SELECT * FROM moneda")
     suspend fun obtenerMonedas(): List<MonedaEntity>

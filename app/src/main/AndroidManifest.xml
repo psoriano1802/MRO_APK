@@ -28,7 +28,8 @@
         android:name="com.example.lacteos_flores.utils.MyApp">
         <activity
             android:name=".activitys.VentasActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize"/>
         <activity android:name=".activitys.FaceDetectionActivity" />
         <activity android:name=".activitys.MainActivity" />
         <activity android:name=".activitys.JornadaActivity" />

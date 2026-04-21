@@ -2,19 +2,37 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Barra de título -->
-    <TextView
+    <LinearLayout
+        android:id="@+id/layoutHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Buscar"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:gravity="center"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:paddingBottom="8dp"
-        android:textColor="#333333" />
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/btnVolver"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/baseline_arrow_back_24"
+            android:visibility="gone"
+            android:contentDescription="Volver" />
+
+        <TextView
+            android:id="@+id/tvTitulo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Buscar Producto"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginStart="8dp"/>
+    </LinearLayout>
 
     <!-- Campo de búsqueda -->
     <EditText
@@ -64,7 +82,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Precio:"
+            android:text="Lote:"
+            android:visibility="invisible"
             android:textSize="14sp"
             android:textColor="#333333"
             android:layout_marginStart="8dp"/>
@@ -74,6 +93,7 @@
             android:layout_height="40dp"
             android:inputType="numberDecimal"
             android:background="#E0E0E0"
+            android:visibility="invisible"
             android:gravity="center"/>
     </LinearLayout>
 

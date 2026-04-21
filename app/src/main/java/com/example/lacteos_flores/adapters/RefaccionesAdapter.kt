@@ -80,11 +80,7 @@ class RefaccionesAdapter (
             System.out.println("refaccion123:"+refaccion.costuni+"cantidad:"+refaccion.cant+"importe:"+refaccion.importe)
 
             var importe = refaccion.cant?.let { refaccion.costuni?.toDouble()?.times(it.toDouble()) }
-            if(refaccion.horas != null){
-                importe = refaccion.horas!!.toDouble()
-                holder.cantidad.text = refaccion.minutos.toString()
-                holder.costoUnitario.text = "$${refaccion.minutos}"
-            }
+
             holder.importe.text = "$${importe.toString()}"
             holder.descripcion.text = refaccion.descripcion
 

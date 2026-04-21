@@ -101,7 +101,7 @@ object Globales{
     suspend fun obtenerDocumentos(): Result<Any> {
         return consumeWS {
             val request = LoginRequest(Login(usuario.toString(), password.toString()))
-            RetrofitClient.apiService.getDocumentos(request)
+            RetrofitClient.apiService.getClientes(request)
 
         }
     }

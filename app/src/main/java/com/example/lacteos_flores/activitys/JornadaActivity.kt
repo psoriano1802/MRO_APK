@@ -211,10 +211,13 @@ class JornadaActivity: AppCompatActivity() {
     // descargar si las hay, paridades, moneda, bacnos
     private fun sincronizarCatalogos() {
         val login = Login(usuario.toString(), pass.toString()) // Usa tus variables reales
+
         lifecycleScope.launch {
             //progressbar para indicar la sincronizacion de catalogos
+            var listaProds = loginUserDao.obtenerUsuario(usuario.toString())
             catalogosManager.sincronizarTodos(
                 login = login,
+                lista = listOf(listaProds?.lista.toString()),
                 onProgress = { mensajeProgreso ->
                     // Esto se ejecuta cada vez que termina un catálogo
                     // Ideal para actualizar un TextView de estado (ej. "Descargando artículos...")

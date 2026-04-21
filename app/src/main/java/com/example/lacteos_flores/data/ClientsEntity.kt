@@ -5,9 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "clientes")//catalogos
 data class ClientsEntity(
-    @PrimaryKey(autoGenerate = true) // Agrega esta línea para generar automáticamente el ID
-    val id: Long = 0,//
-    val clave: String,
+    @PrimaryKey val clave: String,
     val nombre: String,
     val rfc: String,
     val limcre: String,
@@ -17,7 +15,7 @@ data class ClientsEntity(
     val pobl: String,
     val tel: String,
     val cp: String,
-    val vendedor: String,
+    val agente: String,
     val latitud: String,
     val longitud: String,
     val flunes: String,

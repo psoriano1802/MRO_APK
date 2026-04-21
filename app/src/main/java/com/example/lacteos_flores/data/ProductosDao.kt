@@ -8,13 +8,13 @@ import androidx.room.Query
 @Dao
 interface ProductosDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertar(producto: ProductosEntity)
+    suspend fun insertarProductos(producto: List<ProductosEntity>)
 
     @Query("SELECT * FROM productos WHERE clave = :cve ")
     suspend fun obtenerProducto(cve: String): ProductosEntity?
 
-    @Query("SELECT * FROM productos")
-    suspend fun obtenerTodosProductos(): List<ProductosEntity>?
+    @Query("SELECT * FROM productos where descripcion like :text or clave like :text")
+    suspend fun obtenerTodosProductos(text: String): List<ProductosEntity>
 
     @Query("DELETE FROM productos")
     suspend fun eliminarTodo()

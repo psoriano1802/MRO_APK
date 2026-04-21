@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.lacteos_flores.R
+import com.example.lacteos_flores.data.ProductosEntity
 import com.example.lacteos_flores.models.modelsUI.ProductoUI
 
 
@@ -38,7 +39,7 @@ class ResultadoBuscarRMAdapter(
 
         // Colorear si es el seleccionado
         if (position == seleccionadaPos) {
-            holder.itemView.setBackgroundColor(Color.parseColor("#D6EAF8")) // azul claro
+            holder.itemView.setBackgroundColor(Color.parseColor("#D6F8E5")) //
         } else {
             holder.itemView.setBackgroundColor(Color.WHITE)
         }

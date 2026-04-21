@@ -8,10 +8,10 @@ import androidx.room.Query
 @Dao
 interface ExistenciaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertar(existencia: ExistenciaEntity)
+    suspend fun insertarExistencias(existencia: List<ExistenciaEntity>)
 
     @Query("SELECT * FROM existencias WHERE clave = :cve ")
-    suspend fun obtenerExistencia(cve: String): ExistenciaEntity?
+    suspend fun obtenerExistencia(cve: String): List<ExistenciaEntity>?
 
     @Query("SELECT * FROM existencias")
     suspend fun obtenerTodasExistencias(): List<ExistenciaEntity>

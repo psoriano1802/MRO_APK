@@ -8,13 +8,13 @@ import androidx.room.Query
 @Dao
 interface ClientsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertar(cliente: ClientsEntity)
+    suspend fun insertarClientes(cliente: List<ClientsEntity>)
 
     @Query("SELECT * FROM clientes WHERE clave = :cve ")
     suspend fun obtenerCliente(cve: String): ClientsEntity?
 
-    @Query("SELECT * FROM clientes")
-    suspend fun obtenerTodosClientes(): List<ClientsEntity>
+    @Query("SELECT * FROM clientes where clave like '%' || :cve || '%' or nombre like '%' || :cve || '%'")
+    suspend fun obtenerTodosClientes(cve: String): List<ClientsEntity>
 
     @Query("DELETE FROM clientes")
     suspend fun eliminarTodo()

@@ -8,7 +8,7 @@ import androidx.room.Query
 @Dao
 interface GastosDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertar(gastos: GastosEntity)
+    suspend fun insertarGasto(gastos: List<GastosEntity>)
 
     @Query("SELECT * FROM gastos WHERE clave = :cve ")
     suspend fun obtenerGastos(cve: String): GastosEntity?
