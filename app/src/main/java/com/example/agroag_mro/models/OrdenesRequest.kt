@@ -10,8 +10,18 @@ data class OrdenesRequest (
     @SerializedName("atrasadas") val atras: String
 )
 
-// para solotraerordenes del activo delusuario
+// para solo traerordenes del activo delusuario
 data class OrdenesRequestActivo (
     val login: Login,
     @SerializedName("Activo") val activo: String,
+)
+
+// para envio de ordenes porusuario en activity validaordenes
+data class OrdenesRequestUsuario (
+    val login: Login,
+   val ordenes: List<SendOrdenes>
+)
+data class SendOrdenes (
+   val docto: String,
+    val comentario: String
 )

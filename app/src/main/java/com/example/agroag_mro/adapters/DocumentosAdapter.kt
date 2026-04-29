@@ -1,5 +1,6 @@
 package com.example.agroag_mro.adapters
 
+import android.text.Editable
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.HorizontalScrollView
@@ -25,6 +26,10 @@ class DocumentosAdapter(
 
     // control para evitar loops
     private var isSyncing = false
+    // Método para obtener documentos con check activo Y comentario no vacío
+    fun getDocumentosSeleccionadosConComentario(): List<DocumentoUI> {
+        return lista.filter { it.validar && it.comentario.isNotBlank() }
+    }
 
     class HeaderViewHolder(val binding: ItemDocumentoHeaderBinding) :
         RecyclerView.ViewHolder(binding.root)
@@ -100,7 +105,15 @@ class DocumentosAdapter(
                 tvCausaMantto.text = item.causa
 
                 etComentario.setText(item.comentario)
+                // Agregar listener para comentario
+                etComentario.addTextChangedListener(object : android.text.TextWatcher {
+                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                    override fun afterTextChanged(s: Editable?) {
+                        item.comentario = s.toString()
 
+                    }
+                })
                 chValidar.setOnCheckedChangeListener(null)
                 chValidar.isChecked = item.validar
                 chValidar.setOnCheckedChangeListener { _, isChecked ->

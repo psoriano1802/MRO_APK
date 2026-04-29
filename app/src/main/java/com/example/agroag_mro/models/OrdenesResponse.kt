@@ -30,7 +30,7 @@ data class OrdenItem(
 
 //para tomar las ordenes del actuvo por usuarios
 data class OrdenesResponseActivo (
-    val ResponseBusActUsr: List<OrdenItemActivo>
+    val ResponseBusOrd: List<OrdenItemActivo>
 )
 data class OrdenItemActivo(
     val ok:String? = null,
@@ -43,5 +43,17 @@ data class OrdenItemActivo(
     @SerializedName("NomPaque")  val npaque: String?= null,
     @SerializedName("Observaciones")  val obser: String?= null,
 
+)
+
+//para recibir la respuesta de las ordenes enviadas y las que no se alla validado correctamente en kepler
+data class ResponseValidaOrdenes (
+    val ResponseValidaOrdenes: List<ValidaOrdenItem>?
+)
+data class ValidaOrdenItem(
+    val ok:String? = null,
+    @SerializedName("msn")  val msn:String? = null,
+    @SerializedName("Validadas")  val vali: String?= null,
+    @SerializedName("NoValidadas")  val novali: String?= null,
+    @SerializedName("Err")  val err: String?= null
 )
 

@@ -11,6 +11,7 @@ import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -191,9 +192,26 @@ class SolicitaRefaccionActivity : AppCompatActivity() {
                 target: RecyclerView.ViewHolder
             ): Boolean = false
 
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+
+            override fun onSwiped(
+                viewHolder: RecyclerView.ViewHolder,
+                direction: Int
+            ) {
                 val position = viewHolder.adapterPosition
-                articuloAdapter.eliminarItem(position)
+
+                AlertDialog.Builder(this@SolicitaRefaccionActivity)
+                    .setTitle("Confirmar eliminación")
+                    .setMessage("¿Deseas eliminar este registro?")
+                    .setCancelable(false)
+                    .setPositiveButton("Sí") { _, _ ->
+                        articuloAdapter.eliminarItem(position)
+                    }
+                    .setNegativeButton("No") { dialog, _ ->
+                        // Restaurar el item si cancela
+                        articuloAdapter.notifyItemChanged(position)
+                        dialog.dismiss()
+                    }
+                    .show()
             }
         })
         itemTouchHelper.attachToRecyclerView(rvArticulos)

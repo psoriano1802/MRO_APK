@@ -9,6 +9,8 @@ import com.example.agroag_mro.models.FolioResponse
 import com.example.agroag_mro.models.LoginRequest
 import com.example.agroag_mro.models.LoginResponse
 import com.example.agroag_mro.models.OrdenesRequest
+import com.example.agroag_mro.models.OrdenesRequestActivo
+import com.example.agroag_mro.models.OrdenesRequestUsuario
 import com.example.agroag_mro.models.OrdenesResponse
 import com.example.agroag_mro.models.OrdenesResponseActivo
 import com.example.agroag_mro.models.PantallasResponse
@@ -18,6 +20,7 @@ import com.example.agroag_mro.models.ProductosRequest
 import com.example.agroag_mro.models.ProductosResponse
 import com.example.agroag_mro.models.ReporteFallaRequest
 import com.example.agroag_mro.models.ReporteFallaResponse
+import com.example.agroag_mro.models.ResponseValidaOrdenes
 import com.example.agroag_mro.models.SucursalResponse
 import com.example.agroag_mro.models.TecnicosResponse
 import com.example.agroag_mro.models.TiposActivoResponse
@@ -107,8 +110,10 @@ interface ApiService {
     //buscar ordenes realacioandos al activos que elusuario ha elegido, (buscaOrdenActivo)
     @Headers("SOAPAction:Bus_Orden_Activo")
     @POST("/api_kepler_mro")
-    suspend fun getOrdenesActivo(@Body request: OrdenesRequest): Response<OrdenesResponse>
+    suspend fun getOrdenesActivo(@Body request: OrdenesRequestActivo): Response<OrdenesResponseActivo>
 
     //validar ordenes seleccionada, enviara los documentos seleccionados para realizar la modificacion del esatus en la orden de mantenimiento
-
+    @Headers("SOAPAction:Valida_Ordenes")
+    @POST("/api_kepler_mro")
+    suspend fun sendValidaOrdenes(@Body request: OrdenesRequestUsuario): Response<ResponseValidaOrdenes>
 }

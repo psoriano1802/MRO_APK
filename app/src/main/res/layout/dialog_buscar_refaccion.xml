@@ -47,6 +47,7 @@
         android:layout_marginTop="12dp">
 
         <TextView
+            android:id="@+id/tv_cantidad"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Cantidad:"
@@ -62,6 +63,7 @@
             android:background="#E0E0E0"
             android:gravity="center"/>
         <TextView
+            android:id="@+id/tv_precio"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Precio:"

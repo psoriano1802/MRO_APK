@@ -57,13 +57,14 @@ class BusquedaRMBottomSheet(
         pass = prefs.obtenerUsuario().second.toString()
         //cargarOpciones()
 
+
         if(tipobusqueda =="1"){
             binding.etPrecio.isEnabled = true
             binding.etCantidad.isEnabled = true
         }else{
             //binding.etPrecio.isEnabled = false // para captura del precio(refacciones) o minutos (mano de obra)
-            binding.etCantidad.isEnabled = false//para captura de la cantidad(refacciones) o horas (mano de obra)
-
+            binding.etCantidad.isVisible = false//para captura de la cantidad(refacciones) o horas (mano de obra)
+            binding.tvCantidad.isVisible = false
         }
         binding.btnBuscar.setOnClickListener {
             val texto = binding.etBusqueda.text.toString()
@@ -108,9 +109,9 @@ class BusquedaRMBottomSheet(
 
             // Construimos un nuevo ProductoUI con cantidad y precio
             val productoConDatos = ultimaSeleccion!!.copy(
-                cant = cantidadText.toDouble(),
+                cant = cantidadText.toDoubleOrNull() ?: 0.0,
                 costuni = costoUnitario,
-                importe = importe.toDouble()
+                importe = importe.toDoubleOrNull() ?: 0.0
             )
 
             // Enviamos el producto al callback para que se agregue al RecyclerView principal
@@ -141,14 +142,16 @@ class BusquedaRMBottomSheet(
     private fun buscar(opcion: String, texto: String) {
         lifecycleScope.launch {
             try {
-
                 val request = ProductosRequest(Login(user, pass), opcion, texto)
                 System.out.println("productosrequest:"+request)
+
                 val response = apiService.getProductos(request)
                 System.out.println("productosresponse:"+response)
+
                 if (response.isSuccessful) {
                     val resultados = response.body()
                     System.out.println("productoresultados:"+resultados)
+
                     resultados?.let {prod ->
                         val okItem = prod?.ResponseProductos?.find{ it.ok != null }
                         if (okItem?.ok == "1") {
@@ -170,16 +173,14 @@ class BusquedaRMBottomSheet(
                                         min =hr * 60.0
                                         cantidad = hr
                                         importe = "0.0"
-
-                                        println("Entro al if")
+                                        println("Entro al if de tipo 2"+"hr:"+hr+"min:"+min+"cant:"+cantidad)
                                     }
-
                                     val productoUI = ProductoUI(
                                         cve = item.cve,
                                         cant = cantidad,
                                         uni = item.uni,
-                                        costuni = costoUnitario,
-                                        importe = importe.toDouble(),
+                                        costuni = cantidad,
+                                        importe = importe.toDoubleOrNull() ?: 0.0,
                                         descripcion = item.name,
                                         minutos = min,
                                         horas = hr
@@ -190,25 +191,19 @@ class BusquedaRMBottomSheet(
                                 if (binding.recyclerResultadosRM.adapter == null) {
                                     binding.recyclerResultadosRM.layoutManager = LinearLayoutManager(requireContext())
                                     val adapter = ResultadoBuscarRMAdapter(lista) { seleccionado ->
-
                                         if(tipobusqueda == "2"){
                                             binding.etPrecio.setText(seleccionado.cant.toString())
                                             binding.etCantidad.setText(seleccionado.horas.toString())
-                                            println("costo:"+seleccionado.costuni+"cant:"+seleccionado.cant)
+                                            println("tipó 2 costo:"+seleccionado.costuni+"cant:"+seleccionado.cant+"horas:"+seleccionado.horas)
                                             ultimaSeleccion = seleccionado
                                             onItemSelected(seleccionado)
                                             dismiss()
                                         }else{
                                             ultimaSeleccion = seleccionado
-
                                         }
                                         System.out.println("seleccionadoBRMBottom:"+seleccionado)
-
                                         //cambiamos el color del item seleccionado
-
                                         //Toast.makeText(requireContext(), "Producto seleccionado: ${seleccionado.descripcion}", Toast.LENGTH_SHORT).show()
-
-
                                     }
                                     binding.recyclerResultadosRM.adapter = adapter
                                 } else {
@@ -223,7 +218,6 @@ class BusquedaRMBottomSheet(
                             // Mostrar error específico o mensaje de no resultados
                             val errorMessage = prod.ResponseProductos?.firstOrNull()?.error ?: "No se encontraron resultados"
                             Toast.makeText(requireContext(), "Error: $errorMessage", Toast.LENGTH_SHORT).show()
-
                             // Limpiar RecyclerView si no hay resultados
                             (binding.recyclerResultadosRM.adapter as? ResultadoBuscarRMAdapter)?.actualizarLista(emptyList())
                         }

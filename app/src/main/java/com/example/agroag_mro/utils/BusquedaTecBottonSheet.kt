@@ -52,8 +52,8 @@ class BusquedaTecBottonSheet(
 
         binding.btnBuscar.setOnClickListener {
             val texto = binding.editTextBusqueda.text.toString()
-            if (texto.length < 3) {
-                binding.editTextBusqueda.error = "Ingresa al menos 3 caracteres"
+            if (texto.length < 0) {
+                binding.editTextBusqueda.error = "Ingresa al menos 1 caracteres"
                 return@setOnClickListener
             }
 
@@ -64,7 +64,6 @@ class BusquedaTecBottonSheet(
     private fun buscar(texto: String) {
         lifecycleScope.launch {
             try {
-
                 val request = ActivoRequest(Login(user, pass), "",texto)
                 System.out.println("activosrequest:"+request)
                 val response = apiService.getTecnicos(request)

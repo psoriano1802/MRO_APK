@@ -4,6 +4,7 @@ import android.icu.text.SimpleDateFormat
 import android.os.Bundle
 import android.view.View
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
@@ -78,6 +79,8 @@ class ManoObraActivity: AppCompatActivity() {
 
         setupListeners()
         //obetenerSucursalesWS()
+        //se edita el texto del boton agregar refaccion por agregar MO
+        btnAgregarRefaccion.text = "Agregar MO"
 
     }
 
@@ -115,7 +118,7 @@ class ManoObraActivity: AppCompatActivity() {
 
         //recyclerview
         rvArticulos = findViewById(R.id.rv_articulos)
-        articuloAdapter =RefaccionesAdapter(mutableListOf(), listOf("Clave","Min","Hr","Unidad","Técnico"))
+        articuloAdapter =RefaccionesAdapter(mutableListOf(), listOf("Clave","Minuto","Unidad","Hora","Tecnico"))
         rvArticulos.adapter = articuloAdapter
         rvArticulos.layoutManager = LinearLayoutManager(this)
 
@@ -153,16 +156,35 @@ class ManoObraActivity: AppCompatActivity() {
         }
         val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0,
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+
             override fun onMove(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder,
                 target: RecyclerView.ViewHolder
             ): Boolean = false
 
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+
+            override fun onSwiped(
+                viewHolder: RecyclerView.ViewHolder,
+                direction: Int
+            ) {
                 val position = viewHolder.adapterPosition
-                articuloAdapter.eliminarItem(position)
+
+                AlertDialog.Builder(this@ManoObraActivity)
+                    .setTitle("Confirmar eliminación")
+                    .setMessage("¿Deseas eliminar este registro?")
+                    .setCancelable(false)
+                    .setPositiveButton("Sí") { _, _ ->
+                        articuloAdapter.eliminarItem(position)
+                    }
+                    .setNegativeButton("No") { dialog, _ ->
+                        // Restaurar el item si cancela
+                        articuloAdapter.notifyItemChanged(position)
+                        dialog.dismiss()
+                    }
+                    .show()
             }
+
         })
         itemTouchHelper.attachToRecyclerView(rvArticulos)
 
@@ -261,13 +283,13 @@ class ManoObraActivity: AppCompatActivity() {
     private fun mostrarDialogBusqueda() {
         val bottomSheet = BusquedaRMBottomSheet("2") { res ->
             var impo = res.costuni
-            val hr = res.cant
-            val min = hr?.times(60.0)
-            val refaccion = ProductoUI(res.cve, 0.0, res.uni,0.0,min,res.descripcion , min,hr)
+            val hr = res.horas
+            val min = hr?.times(60)
+            val refaccion = ProductoUI(res.cve, min, res.uni,hr,null,res.descripcion , min,hr)
 
-            System.out.println("refaccionMO:"+res)
+            System.out.println("refaccionMO:"+refaccion)
             dialogBuscarTecnico(refaccion)
-            //articuloAdapter.agregarItem(refaccion)
+           // articuloAdapter.agregarItem(refaccion)
         }
         bottomSheet.show(supportFragmentManager, "BusquedaRMBottomSheet")
     }
