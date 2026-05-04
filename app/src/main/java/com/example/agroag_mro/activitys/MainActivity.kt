@@ -21,8 +21,8 @@ class MainActivity : AppCompatActivity() {
     private val allitems = listOf(
         MenuOptions("Reporte de falla", R.drawable.ic_inventory,"FALLA", ReporteFallaActivity::class.java),
         MenuOptions("Ordenes Asignadas", R.drawable.ic_orders,"ASIGNADAS", ListaOrdenesActivity::class.java),
-        MenuOptions("Solicita Refacciones", R.drawable.ic_reports,"REFACCIONES", SolicitaRefaccionActivity::class.java),
-        MenuOptions("Mano de Obra", R.drawable.ic_settings,"MANOOBRA", ManoObraActivity::class.java),
+       // MenuOptions("Solicita Refacciones", R.drawable.ic_reports,"REFACCIONES", SolicitaRefaccionActivity::class.java),
+       // MenuOptions("Mano de Obra", R.drawable.ic_settings,"MANOOBRA", ManoObraActivity::class.java),
         MenuOptions("Valida Orden", R.drawable.ic_settings,"VALIDAORDEN", ValidaOrdenActivity::class.java)
     )
 
@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
        viewModel = ViewModelProvider(this)[MenuViewModel::class.java]
 
         val userAct = Prefs(this).obtenerUsuario().first
-        System.out.println("userAct:"+userAct)
+        //System.out.println("userAct:"+userAct)
         viewModel.obtenerPantallasPermitidas(userAct).observe(this) { pantallas ->
             val permitidas = pantallas.map { it.pantalla }
             val visibles= allitems.filter { it.clave in permitidas  }
