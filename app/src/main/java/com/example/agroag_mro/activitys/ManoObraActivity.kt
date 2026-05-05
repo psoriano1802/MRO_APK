@@ -118,7 +118,7 @@ class ManoObraActivity: AppCompatActivity() {
 
         //recyclerview
         rvArticulos = findViewById(R.id.rv_articulos)
-        articuloAdapter =RefaccionesAdapter(mutableListOf(), listOf("Clave","Minuto","Unidad","Hora","Tecnico"))
+        articuloAdapter =RefaccionesAdapter(mutableListOf(), listOf("Clave","","Unidad","Minutos","Hora","Tecnico"))
         rvArticulos.adapter = articuloAdapter
         rvArticulos.layoutManager = LinearLayoutManager(this)
 
@@ -285,7 +285,7 @@ class ManoObraActivity: AppCompatActivity() {
             var impo = res.costuni
             val hr = res.horas
             val min = hr?.times(60)
-            val refaccion = ProductoUI(res.cve, min, res.uni,hr,null,res.descripcion , min,hr)
+            val refaccion = ProductoUI(res.cve, null, res.uni,null,null,res.descripcion , min,hr)
 
             System.out.println("refaccionMO:"+refaccion)
             dialogBuscarTecnico(refaccion)

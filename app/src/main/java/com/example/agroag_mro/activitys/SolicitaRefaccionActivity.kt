@@ -136,7 +136,7 @@ class SolicitaRefaccionActivity : AppCompatActivity() {
 
         //recyclerview
         rvArticulos = findViewById(R.id.rv_articulos)
-        articuloAdapter =RefaccionesAdapter(mutableListOf(),listOf("Clave","Cantida","Unidad","Preciso","Importe","Descripción"))
+        articuloAdapter =RefaccionesAdapter(mutableListOf(),listOf("Clave","Cantida","Unidad","Precio","Importe","Descripción"))
         rvArticulos.adapter = articuloAdapter
         rvArticulos.layoutManager = LinearLayoutManager(this)
 
