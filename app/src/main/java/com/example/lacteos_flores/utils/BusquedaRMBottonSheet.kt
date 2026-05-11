@@ -51,12 +51,13 @@ class BusquedaRMBottomSheet(
             //val lotesDisponibles = db.existenciasDao().obtenerExistencia(producto.cve.toString())
             val listusr = db.usuarioDao().obtenerUsuario(user)?.lista
             val lotesDisponibles = db.listaPreciosDao().obtenerProductosConExistencia("%${producto.cve}%", listusr.toString())
+            println("lotesDisponibles:"+lotesDisponibles)
             // UI: Cambios visuales
             binding.btnVolver.visibility = View.VISIBLE // Mostramos el botón volver
             binding.etBusqueda.visibility = View.GONE
             binding.btnBuscar.visibility = View.GONE
             binding.tvTitulo.text = "Seleccione Lote para ${producto.cve}"
-            if (lotesDisponibles?.isNotEmpty()== true) {
+            if (lotesDisponibles?.isNotEmpty() == true) {
                 viendoLotes = true
                 val listProductoAux = lotesDisponibles.map {
                     ProductoUI(
@@ -186,7 +187,13 @@ class BusquedaRMBottomSheet(
         lifecycleScope.launch {
             try {
                 val prod = db.productosDao().obtenerTodosProductos("%${texto}%")
+                val proExis = db.existenciasDao().obtenerExistencia("%${texto}%")
+                val proExisAux = db.existenciasDao().obtenerExistencia("%${texto}%")
                 //parseamos el listado de productos obtenidos desde la base
+                if(proExis?.isEmpty() == true && proExisAux?.isEmpty() == true){
+                    Toast.makeText(requireContext(), "Producto no cuenta con existencias para realizar la venta, Solicite una Recarga y Actualice Informacion!", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
                 if (prod.isNotEmpty()) {
                     val listaProductosUI = prod.map {
                         ProductoUI(

@@ -11,8 +11,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 @Database(
     entities = [UsuarioEntity::class,  DoctosEntity::class, ClientsEntity::class,
         BancoEntity::class, GastosEntity::class, MonedaEntity::class, ListaPreciosEntity::class,
-    ProductosEntity::class,ExistenciaEntity::class,Kdm1Entity::class,Kdm2Entity::class,ItemAuxEntity::class],
-    version = 11
+    ProductosEntity::class,ExistenciaEntity::class,Kdm1Entity::class,Kdm2Entity::class,ItemAuxEntity::class, CarteraEntity::class],
+    version = 12
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun usuarioDao(): UsuarioDao
@@ -27,6 +27,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun kdm1Dao(): Kdm1Dao
     abstract fun kdm2Dao(): Kdm2Dao
     abstract fun itemAuxDao(): ItemAuxDao
+    abstract fun carteraDao(): CarteraDao
+
 
 
 
@@ -50,17 +52,18 @@ abstract class AppDatabase : RoomDatabase() {
         }
         private val MIGRATION_1_2 = object: Migration(1, 2) {
            override fun migrate(database: SupportSQLiteDatabase) {
-            database.execSQL("DROP TABLE IF EXISTS documentos")
-               database.execSQL("DROP TABLE IF EXISTS bancos")
-               database.execSQL("DROP TABLE IF EXISTS gastos")
-               database.execSQL("DROP TABLE IF EXISTS productos")
-               database.execSQL("DROP TABLE IF EXISTS existencias")
-               database.execSQL("DROP TABLE IF EXISTS clientes")
-               database.execSQL("DROP TABLE IF EXISTS monedas")
-               database.execSQL("DROP TABLE IF EXISTS listaprecios")
-               database.execSQL("DROP TABLE IF EXISTS kdm1_doctos")
-               database.execSQL("DROP TABLE IF EXISTS kdm2_partidas")
-               database.execSQL("DROP TABLE IF EXISTS itemAux")
+            database.execSQL("DROP TABLE IF EXISTS documentos")//tabla para los documentos a utilizar configuracion
+               database.execSQL("DROP TABLE IF EXISTS bancos")//catalogo bancos
+               database.execSQL("DROP TABLE IF EXISTS gastos")//catalogo gastos
+               database.execSQL("DROP TABLE IF EXISTS productos")//lista de productos
+               database.execSQL("DROP TABLE IF EXISTS existencias")//existencias de productos
+               database.execSQL("DROP TABLE IF EXISTS clientes")//catalogo clientes
+               database.execSQL("DROP TABLE IF EXISTS monedas")//Catalogo de monedas
+               database.execSQL("DROP TABLE IF EXISTS listaprecios")//lista de precios
+               database.execSQL("DROP TABLE IF EXISTS kdm1_doctos")//tabla para los encabezados de documentos equivalente a kdm1
+               database.execSQL("DROP TABLE IF EXISTS kdm2_partidas")//tabla para los detalles de documentos equivalente a kdm2
+               database.execSQL("DROP TABLE IF EXISTS itemAux")//tabla para existencias de controles auxiliares equivalente kdij
+               database.execSQL("DROP TABLE IF EXISTS cartera")//tabla para cartera de clientes(documentos vencidos)
            }
         }
     }

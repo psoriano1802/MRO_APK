@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 //tabla de encabezados de documentos para las ventas
-@Entity(tableName = "kdm1_doctos")//catalogos
+@Entity(tableName = "kdm1_doctos")
 data class Kdm1Entity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -24,5 +24,9 @@ data class Kdm1Entity(
     val agent: String,
     val lati: String,
     val long: String,
+    val subtotal: String,
+    val iva: String,
+    val monto: String,
+    val staSinc: String
 
 )

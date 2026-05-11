@@ -2,6 +2,7 @@ package com.example.lacteos_flores.controllers
 
 import com.example.lacteos_flores.data.AppDatabase
 import com.example.lacteos_flores.data.BancoEntity
+import com.example.lacteos_flores.data.CarteraEntity
 import com.example.lacteos_flores.data.ClientsEntity
 import com.example.lacteos_flores.data.DoctosEntity
 import com.example.lacteos_flores.data.ExistenciaEntity
@@ -110,7 +111,7 @@ class CatalogosManager(private val db: AppDatabase) {
                 withContext(Dispatchers.Main) { onProgress("❌ Falló Clientes") }
             }
             // ---------------------------------------------------------
-            // 6. Sincronizar Clientes
+            // 6. Sincronizar listas
             // ---------------------------------------------------------
             try {
                 withContext(Dispatchers.Main) { onProgress("Sincronizando Listas...") }
@@ -132,6 +133,18 @@ class CatalogosManager(private val db: AppDatabase) {
                 totalErrores++
                 reporteErrores.add("Lista Monedas: ${e.message}")
                 withContext(Dispatchers.Main) { onProgress("❌ Falló Monedas") }
+            }
+            // ---------------------------------------------------------
+            // 7. Sincronizar  cartera
+            // ---------------------------------------------------------
+            try {
+                withContext(Dispatchers.Main) { onProgress("Sincronizando Carter...") }
+                sincronizarCartera(login)
+                withContext(Dispatchers.Main) { onProgress("✅ Carteras actualizadas") }
+            } catch (e: Exception) {
+                totalErrores++
+                reporteErrores.add("Carteras: ${e.message}")
+                withContext(Dispatchers.Main) { onProgress("❌ Falló Carteras") }
             }
             // ---------------------------------------------------------
             // EVALUACIÓN FINAL
@@ -334,7 +347,7 @@ class CatalogosManager(private val db: AppDatabase) {
         // ... Aquí clonas la lógica adaptada para tu catálogo de bancos ...
         val request = LoginRequest(login)
         val response = RetrofitClient.apiService.getExistencias(request)
-        val jsonEnviado = com.google.gson.Gson().toJson(request)
+        val jsonEnviado = Gson().toJson(request)
         println("DEBUG JSON ENVIADO existencas: $jsonEnviado")
         println("DEBUG RESPONSE existencias: $response")
         if (!response.isSuccessful) {
@@ -459,7 +472,7 @@ class CatalogosManager(private val db: AppDatabase) {
         // ... Aquí clonas la lógica adaptada para tu catálogo de bancos ...
         val request = LoginRequest(login)
         val response = RetrofitClient.apiService.getClientes(request)
-        val jsonEnviado = com.google.gson.Gson().toJson(request)
+        val jsonEnviado = Gson().toJson(request)
         println("DEBUG JSON ENVIADO: $jsonEnviado")
         println("DEBUG RESPONSE: $response")
         if (!response.isSuccessful) {
@@ -558,6 +571,49 @@ class CatalogosManager(private val db: AppDatabase) {
                 db.monedaDao().insertar(listaParaGuardar)
             } else {
                 throw Exception("El WS de bancos no devolvió ok:1")
+            }
+        }
+    }
+    private suspend fun sincronizarCartera(login: Login) {
+        val request = LoginRequest(login)
+        val response = RetrofitClient.apiService.getCartera(request)
+
+        if (!response.isSuccessful) {
+            throw Exception("Error servidor Documentos: ${response.code()}")
+        }
+
+        val listaRaw =
+            response.body()?.CarteraResponse  ?: throw Exception("Respuesta vacía de Cartera")
+
+        if (listaRaw.size > 1) {
+            val primerObjeto = gson.toJson(listaRaw[0])
+
+            if (primerObjeto.contains("\"ok\":\"1\"")) {
+                val listaParaGuardar = mutableListOf<CarteraEntity>()
+
+                for (i in 1 until listaRaw.size) {
+                    val jsonElement = gson.toJsonTree(listaRaw[i])
+                    val doc = gson.fromJson(jsonElement, itemCartera::class.java)
+
+                    listaParaGuardar.add(
+                        CarteraEntity(
+                            cli = doc.cli.toString()
+                            ,docto = doc.docto.toString()
+                            ,monto = doc.monto.toString()
+                            ,saldo = doc.saldo.toString()
+                            ,fecha = doc.fecha.toString()
+                            ,credito = doc.credito.toString()
+                            ,abono = doc.abono.toString()
+                            ,dias = doc.dias.toString()
+
+                        )
+                    )
+                }
+
+                db.carteraDao().eliminarTodo()
+                db.carteraDao().insertaCartera(listaParaGuardar)
+            } else {
+                throw Exception("El WS de Documentos no devolvió ok:1")
             }
         }
     }

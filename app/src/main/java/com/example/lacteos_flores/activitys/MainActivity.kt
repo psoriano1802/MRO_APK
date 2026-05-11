@@ -2,8 +2,12 @@ package com.example.lacteos_flores.activitys
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.MenuItem
+import android.widget.Toast
+import androidx.activity.result.launch
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.lacteos_flores.R
 import com.example.lacteos_flores.adapters.MenuAdapter
@@ -39,8 +43,10 @@ class MainActivity : AppCompatActivity() {
             val visibles= allitems
 
             val adapter = MenuAdapter(visibles){ accion ->
-                val intent = Intent(this, accion)
-                startActivity(intent)
+                /*val intent = Intent(this, accion)
+                startActivity(intent)*/
+                // Aquí recibimos el clic y validamos
+                validarExistenciasYProceder(accion)
             }
             binding.recyclerViewMenu.layoutManager = GridLayoutManager(this, 2)
             binding.recyclerViewMenu.adapter = adapter
@@ -50,6 +56,23 @@ class MainActivity : AppCompatActivity() {
 
         //}
 
+    }
+    private fun validarExistenciasYProceder(item: MenuItem) {
+        lifecycleScope.launch {
+            // Consultamos a Room (Asumiendo que tienes un ExistenciasDao)
+            val totalExistencia = db.existenciasDao().obtenerTotalExistencias()
+
+            if (totalExistencia > 0) {
+                // SI HAY: Abrimos la actividad
+                val intent = Intent(this@MainActivity, VentasActivity::class.java)
+                startActivity(intent)
+            } else {
+                // NO HAY: Mostramos alerta y no dejamos pasar
+                Toast.makeText(this@MainActivity,
+                    "No puedes continuar: No hay existencias en almacén. Sincroniza primero.",
+                    Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
 }

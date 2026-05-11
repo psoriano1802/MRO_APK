@@ -33,6 +33,8 @@ class MenuAdapter(private val items: List<MenuOptions>,private val onItemClick: 
         holder.icon.setImageResource(item.iconRes)
         holder.title.text = item.title
         holder.itemView.setOnClickListener {
+            //solo para el item de ventas se validara primero si hay existencias en el almacen, de no haber existencias bloqueamos la accion y enviamos un mensaje para que sincronice existencias
+
             onItemClick(item.accion)
         }
     }

@@ -11,12 +11,13 @@ interface Kdm1Dao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertaDocumento(docto: Kdm1Entity): Long
 
-    @Query("SELECT * FROM kdm1_doctos WHERE id = :id and  suc = :suc and alm = :alm and gen = :gen and nat = :nat and grp = :grp and tip = :tip ")
-    suspend fun obtenerCliente(id: Long, suc: String, alm: String, gen: String, nat: String, grp: String, tip: String): Kdm1Entity
+    @Query("SELECT count(monto) FROM kdm1_doctos WHERE cliente =:cli and staSinc = 'N'")
+    suspend fun obtenerMovimiento(cli: String): Double?
+
 
     @Query("SELECT * FROM kdm1_doctos ")
-    suspend fun obtenerTodosClientes(): List<Kdm1Entity>
+    suspend fun obtenerMovimientos(): List<Kdm1Entity>
 
     @Query("DELETE FROM kdm1_doctos")
-    suspend fun eliminarTodoKdm1()
+    suspend fun eliminarTodoMovimiento()
 }

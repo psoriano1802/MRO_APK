@@ -38,16 +38,17 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlin.toString
 
 class VentasActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var etAlmacen: TextView
     private lateinit var adapter: OrdenesAdapter
-    private lateinit var etFecha: EditText
+    private lateinit var etFecha: TextView
     private lateinit var etMoneda: EditText
     private lateinit var btnBuscarCliente: Button
     private lateinit var etCodigoCliente: EditText
-    private lateinit var etNombreCliente: EditText
+    private lateinit var etNombreCliente: TextView
     private lateinit var btnBuscarProducto: Button
     private lateinit var btnGuardar: Button
     private lateinit var etProducto: EditText
@@ -75,16 +76,14 @@ class VentasActivity : AppCompatActivity() {
     private fun relacionaView(){
         recyclerView = findViewById(R.id.rvProductos)
         etAlmacen = findViewById(R.id.tvAlmacen)
-        etFecha = findViewById(R.id.etFecha)
-        etMoneda = findViewById(R.id.etMoneda)
-        btnBuscarCliente = findViewById(R.id.btnBuscarCliente)
+        etFecha = findViewById(R.id.tvFecha)
         etCodigoCliente = findViewById(R.id.etCodigoCliente)
-        etNombreCliente = findViewById(R.id.etNombreCliente)
+        etNombreCliente = findViewById(R.id.tvNombreCliente)
         btnBuscarProducto = findViewById(R.id.btnBuscarProducto)
         btnGuardar = findViewById(R.id.btnAceptar)
         etProducto = findViewById(R.id.etProducto)
         spTipoDoc = findViewById(R.id.spinnerTipoDoc)
-        spTipoRfc = findViewById(R.id.spinnerTipoRfc)
+
     }
 
     private fun Inicializa(){
@@ -113,7 +112,7 @@ class VentasActivity : AppCompatActivity() {
 
     //funcion para confiurar los listeners de los botones
     private fun setupListeners() {
-        btnBuscarCliente.setOnClickListener {
+        etCodigoCliente.setOnClickListener {
             // Aquí puedes implementar la lógica para guardar los datos
             buscarCliente()
         }
@@ -151,13 +150,15 @@ class VentasActivity : AppCompatActivity() {
                 val alm = db.usuarioDao().obtenerUsuario(usuario.toString())
                 etAlmacen.setText(alm?.almacen)
                 //cargamos la moneda del usaurios en el edtMoneda del layout
-                val mon = db.monedaDao().obtenerMonedas()
+               // val mon = db.monedaDao().obtenerMonedas()
                 //de momento se dajara a pesos solo para la venta posterioemente para versiones futuras adaptarlo a un spinner para cargar los tipode de monedas
-                etMoneda.setText(mon[0]?.moneda)
+               // etMoneda.setText(mon[0]?.moneda)
                 //buscamos los documentos disponibles para ponerlo en el spinnerTipoDoc y mostrando las descripciones
                 val doctos = db.doctosDao().obtenerDocumentos()
                 //Filtramos por el tipo de documento a trabajar en la pantalla
                 val descripciones = doctos.filter { it.gen == "U" && it.nat == "D" && it.grp == "45"}.map { it.descripcion }
+
+
 
                 val adapterDoctos = ArrayAdapter(this@VentasActivity, android.R.layout.simple_spinner_item, descripciones)
                 adapterDoctos.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -180,13 +181,42 @@ class VentasActivity : AppCompatActivity() {
         val bottomSheetCliente = BusquedaTecBottonSheet{ cli ->
             etNombreCliente.setText(cli.nombre)
             etCodigoCliente.setText(cli.clave)
-            if(cli.rfc.equals("XAXX010101000")){
-                //se realiza venta normal tanto a credito como a contado
-            }else{
-                //se realiza la venta seira con rfc registrado
+            val limcre = cli.limcre
+            //obtenemos los movimientos del cliente para validar el limite de credito y los dias de credito
+            lifecycleScope.launch {
+                try {
+                    val movim = db.kdm1Dao().obtenerMovimiento(cli.clave.toString()) ?: 0.0
+                    if (movim > limcre.toDouble()){
+                        Toast.makeText(this@VentasActivity, "El limite de credito se ha excedido", Toast.LENGTH_SHORT).show()
+                        //si el limite de credito se excede se deja la venta solo de contado
+
+                    }else{
+                        Toast.makeText(this@VentasActivity, "El limite de credito no se ha excedido", Toast.LENGTH_SHORT).show()
+                    }
+                    //validamos loz dias de vencimiento del cliente
+                    val dias = db.carteraDao().obtenerDocVence(cli.clave.toString())
+                    if (dias.isNotEmpty() ){
+                        Toast.makeText(this@VentasActivity, "El cliente tiene dias de vencimiento", Toast.LENGTH_SHORT).show()
+                        //si el cliente tiene dias de vencimiento se deja la venta solo de contado
+                        //dejamos el spinner de tipo documento fijo en contado
+                        spTipoDoc.setSelection(0)
+                        //bloqueadmos el selector de tipo de documento para que haga ventas a credito para el cliente
+                        spTipoDoc.isEnabled = false
+
+                    }else{
+                        Toast.makeText(this@VentasActivity, "El cliente no tiene dias de vencimiento", Toast.LENGTH_SHORT).show()
+                    }
+
+                    //consultaremos el estado de cuenta del cliente, filtrando los documentos que tengan los dias de vencimiento mayor a los dias permitidos
+
+
+                }catch (e: Exception){
+                    println("error:"+e)
+                    Toast.makeText(this@VentasActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+
             }
-            //validamos el limite de credito
-            //validamos los dias de credito
+
 
 
         }
@@ -213,7 +243,7 @@ class VentasActivity : AppCompatActivity() {
         bottomSheet.show(supportFragmentManager, "BusquedaRMBottomSheet")
     }
 
-    private fun showDatePicker(campoFecha: EditText) {
+    private fun showDatePicker(campoFecha: TextView) {
         val calendario = Calendar.getInstance()
 
         val datePicker = DatePickerDialog(

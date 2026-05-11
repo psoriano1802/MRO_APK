@@ -89,6 +89,12 @@ interface ApiService {
     @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
     suspend fun getListaProd(@Body request: LoginRequest): Response<ListaPreciosResponse>
 
+    //Cartera
+    @Headers("SOAPAction:cartera")
+    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    suspend fun getCartera(@Body request: LoginRequest): Response<CarteraResponse>
+
+
     //envio de documentos al servidor
     @Headers("SOAPAction:Alta_Mano_Refaccion")
     @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta

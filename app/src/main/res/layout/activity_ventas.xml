@@ -21,66 +21,41 @@
             android:focusable="false"
             android:cursorVisible="false"
             android:clickable="false"
+            android:textStyle="bold"
             android:textAlignment="center"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"
+            />
 
-        <EditText
-            android:id="@+id/etFecha"
+        <!-- CAMBIO: TextView para Fecha y ajuste de restricciones para estar a un lado del Spinner -->
+        <TextView
+            android:id="@+id/tvFecha"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:layout_marginTop="16dp"
+            android:layout_marginEnd="8dp"
+            android:gravity="center_vertical"
             android:hint="FECHA"
             android:padding="10dp"
-            android:focusable="false"
-            android:cursorVisible="false"
             android:background="@drawable/custom_input_background"
+            android:textColor="@android:color/black"
             app:layout_constraintTop_toBottomOf="@id/tvAlmacen"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/etMoneda"
-            app:layout_constraintHorizontal_weight="1"/>
+            app:layout_constraintEnd_toStartOf="@id/spinnerTipoDoc"
+            app:layout_constraintHorizontal_weight="1" />
 
-        <EditText
-            android:id="@+id/etMoneda"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:hint="MONEDA"
-            android:visibility="invisible"
-            android:focusable="false"
-            android:cursorVisible="false"
-            android:clickable="false"
-            android:padding="10dp"
-            android:background="@drawable/custom_input_background"
-            app:layout_constraintTop_toTopOf="@id/etFecha"
-            app:layout_constraintStart_toEndOf="@+id/etFecha"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_weight="1"/>
-
+        <!-- Ajuste del Spinner para alinearse con tvFecha -->
         <Spinner
             android:id="@+id/spinnerTipoDoc"
             android:layout_width="0dp"
             android:layout_height="48dp"
-            android:layout_marginTop="8dp"
             android:background="@drawable/custom_input_background"
-            app:layout_constraintTop_toBottomOf="@id/etFecha"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/spinnerTipoRfc"
-            app:layout_constraintHorizontal_weight="1"/>
-
-        <Spinner
-            android:id="@+id/spinnerTipoRfc"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="16dp"
-            android:visibility="invisible"
-            android:background="@drawable/custom_input_background"
-            app:layout_constraintTop_toTopOf="@id/spinnerTipoDoc"
-            app:layout_constraintStart_toEndOf="@+id/spinnerTipoDoc"
+            app:layout_constraintTop_toTopOf="@id/tvFecha"
+            app:layout_constraintBottom_toBottomOf="@id/tvFecha"
+            app:layout_constraintStart_toEndOf="@id/tvFecha"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_weight="1"/>
-
+            app:layout_constraintHorizontal_weight="1" />
         <View
             android:id="@+id/divider1"
             android:layout_width="match_parent"
@@ -101,29 +76,21 @@
             android:padding="10dp"
             android:background="@drawable/custom_input_background"
             app:layout_constraintTop_toBottomOf="@id/divider1"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/btnBuscarCliente" />
+            app:layout_constraintStart_toStartOf="parent" />
 
-        <Button
-            android:id="@+id/btnBuscarCliente"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="BUSCAR"
-            app:layout_constraintTop_toTopOf="@id/etCodigoCliente"
-            app:layout_constraintBottom_toBottomOf="@id/etCodigoCliente"
-            app:layout_constraintEnd_toEndOf="parent" />
 
-        <EditText
-            android:id="@+id/etNombreCliente"
+
+        <!-- CAMBIO: TextView para Nombre -->
+        <TextView
+            android:id="@+id/tvNombreCliente"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:hint="NOMBRE"
-            android:focusable="false"
-            android:cursorVisible="false"
-            android:clickable="false"
             android:padding="10dp"
+            android:minHeight="48dp"
+            android:gravity="center_vertical"
+            android:textColor="@android:color/black"
             android:background="@drawable/custom_input_background"
             app:layout_constraintTop_toBottomOf="@id/etCodigoCliente" />
 
@@ -133,23 +100,24 @@
             android:layout_height="2dp"
             android:layout_marginTop="12dp"
             android:background="#CCCCCC"
-            app:layout_constraintTop_toBottomOf="@id/etNombreCliente" />
+            app:layout_constraintTop_toBottomOf="@id/tvNombreCliente" />
 
         <EditText
             android:id="@+id/etProducto"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="PRODUCTO"
-            android:focusable="false"
-            android:cursorVisible="false"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/custom_input_background"
             android:clickable="false"
+            android:cursorVisible="false"
+            android:focusable="false"
+            android:hint="PRODUCTO"
             android:padding="10dp"
             android:visibility="invisible"
-            android:background="@drawable/custom_input_background"
-            app:layout_constraintTop_toBottomOf="@id/divider2"
+            app:layout_constraintEnd_toStartOf="@+id/btnBuscarProducto"
+            app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/btnBuscarProducto" />
+            app:layout_constraintTop_toBottomOf="@id/divider2" />
 
         <Button
             android:id="@+id/btnBuscarProducto"
@@ -177,7 +145,7 @@
             android:layout_width="150dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:hint="Sub Total"
+            android:hint="0.00"
             android:background="@drawable/custom_input_background"
             android:padding="8dp"
             android:focusable="false"
@@ -191,7 +159,7 @@
             android:layout_width="150dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:hint="IVA"
+            android:hint="0.00"
             android:background="@drawable/custom_input_background"
             android:padding="8dp"
             android:focusable="false"
@@ -205,7 +173,7 @@
             android:layout_width="150dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:hint="Total"
+            android:hint="0.00"
             android:background="@drawable/custom_input_background"
             android:padding="8dp"
             android:focusable="false"
