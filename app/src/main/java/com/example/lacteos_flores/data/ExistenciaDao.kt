@@ -13,8 +13,10 @@ interface ExistenciaDao {
     @Query("SELECT * FROM existencias WHERE clave = :cve ")
     suspend fun obtenerExistencia(cve: String): List<ExistenciaEntity>?
 
-    @Query("SELECT * FROM existencias")
-    suspend fun obtenerTodasExistencias(): List<ExistenciaEntity>
+    //consultar el total de existencias
+
+    @Query("SELECT count(*) FROM existencias")
+    suspend fun obtenerTodasExistencias(): Int
 
     @Query("DELETE FROM existencias")
     suspend fun eliminarTodo()

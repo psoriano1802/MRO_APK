@@ -66,9 +66,9 @@ class RefaccionesAdapter (
             holder.col1.text = headers.getOrNull(0) ?: "Clave"
             holder.col2.text = headers.getOrNull(1) ?: "Min"
             holder.col3.text = headers.getOrNull(2) ?: "Hr"
-            holder.col4.text = headers.getOrNull(3) ?: "Unidad"
-            holder.col5.text = headers.getOrNull(4) ?: "Tecnico"
-            holder.col6.text = headers.getOrNull(5) ?: " "
+            holder.col4.text = headers.getOrNull(3) ?: ""
+            holder.col5.text = headers.getOrNull(4) ?: ""
+            holder.col6.text = headers.getOrNull(5) ?: ""
         }else if(holder is RefaccionesViewHolder){
             val refaccion = refacciones[position-1]
             holder.articulo.text = refaccion.cve
@@ -76,11 +76,8 @@ class RefaccionesAdapter (
             holder.unidad.text = refaccion.uni
             holder.costoUnitario.text = "$${refaccion.costuni}"
             //calculamos el importe
-
             System.out.println("refaccion123:"+refaccion.costuni+"cantidad:"+refaccion.cant+"importe:"+refaccion.importe)
-
             var importe = refaccion.cant?.let { refaccion.costuni?.toDouble()?.times(it.toDouble()) }
-
             holder.importe.text = "$${importe.toString()}"
             holder.descripcion.text = refaccion.descripcion
 

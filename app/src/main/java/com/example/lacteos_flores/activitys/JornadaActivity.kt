@@ -81,7 +81,7 @@ class JornadaActivity: AppCompatActivity() {
     //funcion para inicializar los views
     private fun initViews() {
         //textviews
-        tvFolio = findViewById(R.id.tv_folio)
+
         tvFecha = findViewById(R.id.tv_fecha)
 
         //botones

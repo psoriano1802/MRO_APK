@@ -29,6 +29,8 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var loginUserDao: UsuarioDao
     private lateinit var db: AppDatabase
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLoginBinding.inflate(layoutInflater)

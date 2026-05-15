@@ -9,5 +9,6 @@
     <color name="green">#FF00FF00</color>
     <color name="blue">#FF0000FF</color>
     <color name="yellow">#FFFFFF00</color>
+    <color name="logo_lf_background">#EDF6F3</color>
 
 </resources>
