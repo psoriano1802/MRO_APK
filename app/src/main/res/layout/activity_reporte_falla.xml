@@ -332,10 +332,18 @@
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:text="📷 Imágenes"
+                    android:text="📷 Captura Imagen"
                     android:background="@drawable/boton_redondeado"
                     android:textColor="@android:color/white"
                     android:layout_marginEnd="8dp" />
+                <Button
+                    android:id="@+id/btn_cargarImg"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="📂 Cargar Imagen"
+                    android:background="@drawable/boton_redondeado"
+                    android:textColor="@android:color/white" />
 
 
             </LinearLayout>

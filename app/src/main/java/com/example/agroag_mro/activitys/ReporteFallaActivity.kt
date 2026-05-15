@@ -42,6 +42,9 @@ import com.example.agroag_mro.utils.ReportePDFGenerator
 import com.example.agroag_mro.utils.ReportePDFGenerator2
 import java.io.File
 import java.io.FileOutputStream
+import android.net.Uri
+import android.graphics.ImageDecoder
+import android.os.Build
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 class ReporteFallaActivity: AppCompatActivity() {
@@ -60,6 +63,7 @@ class ReporteFallaActivity: AppCompatActivity() {
     private lateinit var etDetalleFalla: EditText
     private lateinit var etObservaciones: EditText
     private lateinit var btnImagenes: Button
+    private lateinit var btnCargarImg: Button
     private lateinit var btnGuardar: Button
     private lateinit var checkImage: CheckBox
     //vairables locales
@@ -67,6 +71,7 @@ class ReporteFallaActivity: AppCompatActivity() {
     private var pass: String? = null
     //para lasimagenes
     private val REQUEST_IMAGE_CAPTURE = 1001
+    private val REQUEST_IMAGE_PICK = 1002
     private val imagenesBase64 = mutableListOf<imagen>() // aquí se guardan temporalmente
 
     private lateinit var reporteGenerator: ReportePDFGenerator
@@ -110,6 +115,7 @@ class ReporteFallaActivity: AppCompatActivity() {
         etDetalleFalla = findViewById(R.id.et_detalle_falla)
         etObservaciones = findViewById(R.id.et_observaciones)
         btnImagenes = findViewById(R.id.btn_imagenes)
+        btnCargarImg = findViewById(R.id.btn_cargarImg)
         btnGuardar = findViewById(R.id.btn_guardar)
         checkImage = findViewById(R.id.chImage)
     }
@@ -211,7 +217,10 @@ class ReporteFallaActivity: AppCompatActivity() {
         btnImagenes.setOnClickListener {
             // Funcionalidad para agregar imágenes
            abrirCamara()
+        }
 
+        btnCargarImg.setOnClickListener {
+            abrirGaleria()
         }
 
 
@@ -233,29 +242,94 @@ class ReporteFallaActivity: AppCompatActivity() {
             startActivityForResult(intent, REQUEST_IMAGE_CAPTURE)
         }
     }
+
+    private fun abrirGaleria() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+        intent.type = "image/*"
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        startActivityForResult(Intent.createChooser(intent, "Selecciona Imágenes"), REQUEST_IMAGE_PICK)
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            val imageBitmap = data?.extras?.get("data") as? Bitmap
-            imageBitmap?.let {
-                val base64String = convertirBase64(it)
-                System.out.println("base64String:"+base64String)
-                imagenesBase64.add(imagen(base64String))
-
-
+        if (resultCode == RESULT_OK) {
+            when (requestCode) {
+                REQUEST_IMAGE_CAPTURE -> {
+                    val imageBitmap = data?.extras?.get("data") as? Bitmap
+                    imageBitmap?.let {
+                        val base64String = convertirBase64(it)
+                        imagenesBase64.add(imagen(base64String))
+                    }
+                }
+                REQUEST_IMAGE_PICK -> {
+                    if (data?.clipData != null) {
+                        val count = data.clipData!!.itemCount
+                        for (i in 0 until count) {
+                            val imageUri = data.clipData!!.getItemAt(i).uri
+                            val bitmap = uriToBitmap(imageUri)
+                            bitmap?.let {
+                                val resized = redimensionarBitmap(it, 800, 800)
+                                val base64String = convertirBase64(resized)
+                                imagenesBase64.add(imagen(base64String))
+                            }
+                        }
+                    } else if (data?.data != null) {
+                        val imageUri = data.data!!
+                        val bitmap = uriToBitmap(imageUri)
+                        bitmap?.let {
+                            val resized = redimensionarBitmap(it, 800, 800)
+                            val base64String = convertirBase64(resized)
+                            imagenesBase64.add(imagen(base64String))
+                        }
+                    }
+                }
             }
-            if(imagenesBase64.size >0){
+            if (imagenesBase64.size > 0) {
                 checkImage.isChecked = true
             }
+        }
+    }
+
+    private fun uriToBitmap(uri: Uri): Bitmap? {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val source = ImageDecoder.createSource(contentResolver, uri)
+                ImageDecoder.decodeBitmap(source)
+            } else {
+                MediaStore.Images.Media.getBitmap(contentResolver, uri)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
     @OptIn(ExperimentalEncodingApi::class)
     private fun convertirBase64(bitmap: Bitmap): String {
         val outputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+        // Bajamos la calidad a 70 para reducir el peso significativamente
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream)
         val byteArray = outputStream.toByteArray()
         return Base64.encodeToString(byteArray, Base64.NO_WRAP)
+    }
+
+    private fun redimensionarBitmap(bitmap: Bitmap, maxWidth: Int, maxHeight: Int): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+
+        if (width <= maxWidth && height <= maxHeight) return bitmap
+
+        val ratio: Float = width.toFloat() / height.toFloat()
+        var finalWidth = maxWidth
+        var finalHeight = maxHeight
+
+        if (width > height) {
+            finalHeight = (maxWidth / ratio).toInt()
+        } else {
+            finalWidth = (maxHeight * ratio).toInt()
+        }
+
+        return Bitmap.createScaledBitmap(bitmap, finalWidth, finalHeight, true)
     }
     //funcion para mostrar el dialogo de busqueda de activos
     private fun mostrarDialogoBusquedaActivos   () {
