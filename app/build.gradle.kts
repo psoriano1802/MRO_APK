@@ -14,8 +14,8 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
     }
     buildFeatures {
         viewBinding = true
@@ -37,6 +37,14 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+    }
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a") // Las más comunes en teléfonos reales
+            isUniversalApk = false // No genera un APK gigante con todo
+        }
     }
 }
 
