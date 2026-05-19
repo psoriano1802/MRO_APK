@@ -21,6 +21,10 @@ import com.example.lacteos_flores.R
 import com.example.lacteos_flores.adapters.OrdenesAdapter
 import com.example.lacteos_flores.adapters.RefaccionesAdapter
 import com.example.lacteos_flores.data.AppDatabase
+import com.example.lacteos_flores.data.ClientsEntity
+import com.example.lacteos_flores.data.DoctosEntity
+import com.example.lacteos_flores.data.Kdm1Entity
+import com.example.lacteos_flores.data.Kdm2Entity
 import com.example.lacteos_flores.data.PantallasEntity
 import com.example.lacteos_flores.data.ProductosEntity
 import com.example.lacteos_flores.data.UsuarioDao
@@ -54,6 +58,10 @@ class VentasActivity : AppCompatActivity() {
     private lateinit var etProducto: EditText
     private lateinit var spTipoDoc: Spinner
     private lateinit var spTipoRfc: Spinner
+    private lateinit var etSubTotal: EditText
+    private lateinit var etIva: EditText
+    private lateinit var etTotal: EditText
+
     //variables para base de datos
     private lateinit var db: AppDatabase
     private lateinit var loginUserDao: UsuarioDao
@@ -62,6 +70,8 @@ class VentasActivity : AppCompatActivity() {
     private var pass: String? = null
     private var almID: String? = null
     private var almUsurio: String? = null
+    private var filteredDoctos: List<DoctosEntity> = listOf()
+    private var selectedClient: ClientsEntity? = null
 
     private lateinit var hproductsAdapter: RefaccionesAdapter
 
@@ -83,6 +93,9 @@ class VentasActivity : AppCompatActivity() {
         btnGuardar = findViewById(R.id.btnAceptar)
         etProducto = findViewById(R.id.etProducto)
         spTipoDoc = findViewById(R.id.spinnerTipoDoc)
+        etSubTotal = findViewById(R.id.etSubTotal)
+        etIva = findViewById(R.id.etIva)
+        etTotal = findViewById(R.id.etTotal)
 
     }
 
@@ -121,8 +134,7 @@ class VentasActivity : AppCompatActivity() {
             buscarProductos()
         }
         btnGuardar.setOnClickListener {
-            // Aquí puedes implementar la lógica para guardar los datos
-
+            GuardadDocumentosLocal()
         }
         val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0,
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
@@ -135,6 +147,7 @@ class VentasActivity : AppCompatActivity() {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.adapterPosition
                 hproductsAdapter.eliminarItem(position)
+                calcularTotales()
             }
         })
         itemTouchHelper.attachToRecyclerView(recyclerView)
@@ -156,9 +169,8 @@ class VentasActivity : AppCompatActivity() {
                 //buscamos los documentos disponibles para ponerlo en el spinnerTipoDoc y mostrando las descripciones
                 val doctos = db.doctosDao().obtenerDocumentos()
                 //Filtramos por el tipo de documento a trabajar en la pantalla
-                val descripciones = doctos.filter { it.gen == "U" && it.nat == "D" && it.grp == "45"}.map { it.descripcion }
-
-
+                filteredDoctos = doctos.filter { it.gen == "U" && it.nat == "D" && it.grp == "45"}
+                val descripciones = filteredDoctos.map { it.descripcion }
 
                 val adapterDoctos = ArrayAdapter(this@VentasActivity, android.R.layout.simple_spinner_item, descripciones)
                 adapterDoctos.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -179,6 +191,7 @@ class VentasActivity : AppCompatActivity() {
         //	si el cliente tiene rfc generico y a crédito, su venta seria factura a credito
 
         val bottomSheetCliente = BusquedaTecBottonSheet{ cli ->
+            selectedClient = cli
             etNombreCliente.setText(cli.nombre)
             etCodigoCliente.setText(cli.clave)
             val limcre = cli.limcre
@@ -235,10 +248,12 @@ class VentasActivity : AppCompatActivity() {
     //funcion para reallizar la busqueda de productos
     private fun buscarProductos() {
         val bottomSheet = BusquedaRMBottomSheet("1") { resultadoSeleccionado ->
-            var impo = resultadoSeleccionado.costuni
-            val refaccion = ProductoUI(resultadoSeleccionado.cve, resultadoSeleccionado.cant, resultadoSeleccionado.uni, resultadoSeleccionado.costuni,impo , resultadoSeleccionado.descripcion)
+            val cant = 1.0
+            val impo = (resultadoSeleccionado.costuni ?: 0.0) * cant
+            val refaccion = ProductoUI(resultadoSeleccionado.cve, cant, resultadoSeleccionado.uni, resultadoSeleccionado.costuni, impo, resultadoSeleccionado.descripcion)
 
             hproductsAdapter.agregarItem(refaccion)
+            calcularTotales()
         }
         bottomSheet.show(supportFragmentManager, "BusquedaRMBottomSheet")
     }
@@ -259,26 +274,109 @@ class VentasActivity : AppCompatActivity() {
         datePicker.show()
     }
 
+    private fun calcularTotales() {
+        val lista = hproductsAdapter.obtenerLista()
+        var subtotal = 0.0
+        var totalIva = 0.0
+        for (item in lista) {
+            val importe = (item.cant ?: 0.0) * (item.costuni ?: 0.0)
+            subtotal += importe
+            totalIva += importe * 0.16 // IVA 16%
+        }
+        val total = subtotal + totalIva
+
+        etSubTotal.setText(String.format(Locale.US, "%.2f", subtotal))
+        etIva.setText(String.format(Locale.US, "%.2f", totalIva))
+        etTotal.setText(String.format(Locale.US, "%.2f", total))
+    }
+
     private fun GuardadDocumentosLocal() {
-       //guardamos la informacion de la pantalla en la base de datos local
+        val cliente = etCodigoCliente.text.toString()
+        val listaPartidas = hproductsAdapter.obtenerLista()
+        val subtotalValue = etSubTotal.text.toString().toDoubleOrNull() ?: 0.0
+
+        // Validaciones
+        if (cliente.isEmpty()) {
+            Toast.makeText(this, "Debe seleccionar un cliente", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (listaPartidas.isEmpty()) {
+            Toast.makeText(this, "Debe agregar al menos un producto", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (subtotalValue <= 0) {
+            Toast.makeText(this, "El monto total debe ser mayor a 0", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         lifecycleScope.launch {
             try {
-                //obtenemos los datos de los encabezados, detalle y auxiliares
-                //tomamos los datos del encabezado como son fecha, tipo de documento, tipo de rfc, moneda y clientes
-                val txtfecha = etFecha.text.toString()
-                val tipodoc = spTipoDoc.selectedItem.toString()
-                val tiporfc = spTipoRfc.selectedItem.toString()
-                val moneda = etMoneda.text.toString()
-                val cliente = etCodigoCliente.text.toString()
-                val nombre = etNombreCliente.text.toString()
+                val selectedDocPos = spTipoDoc.selectedItemPosition
+                if (selectedDocPos < 0 || filteredDoctos.isEmpty()) {
+                    Toast.makeText(this@VentasActivity, "Tipo de documento no válido", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                val docConfig = filteredDoctos[selectedDocPos]
+                val fecha = etFecha.text.toString()
+                val almacen = etAlmacen.text.toString()
 
+                // Header (Kdm1)
+                val kdm1 = Kdm1Entity(
+                    suc = "0",
+                    alm = almacen,
+                    gen = docConfig.gen,
+                    nat = docConfig.nat,
+                    grp = docConfig.grp,
+                    tip = docConfig.tipo,
+                    fecha = fecha,
+                    cliente = cliente,
+                    moneda = "PESOS",
+                    pari = "1.0",
+                    rfc = selectedClient?.rfc ?: "",
+                    venc = fecha,
+                    condi = "CONTADO",
+                    agent = usuario ?: "",
+                    lati = selectedClient?.latitud ?: "0.0",
+                    long = selectedClient?.longitud ?: "0.0",
+                    subtotal = etSubTotal.text.toString(),
+                    iva = etIva.text.toString(),
+                    monto = etTotal.text.toString(),
+                    staSinc = "N"
+                )
 
-            }catch (e: Exception){
-                System.out.println("error:"+e)
-                Toast.makeText(this@VentasActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                val idDoc = db.kdm1Dao().insertaDocumento(kdm1)
+
+                // Partidas (Kdm2)
+                val partidas = listaPartidas.mapIndexed { index, item ->
+                    Kdm2Entity(
+                        iddoc = idDoc,
+                        suc = "0",
+                        alm = almacen,
+                        gen = docConfig.gen,
+                        nat = docConfig.nat,
+                        grp = docConfig.grp,
+                        tip = docConfig.tipo,
+                        partida = (index + 1).toString(),
+                        producto = item.cve ?: "",
+                        cantidad = item.cant.toString(),
+                        descrip = item.descripcion ?: "",
+                        unidad = item.uni ?: "",
+                        precio = item.costuni.toString(),
+                        importe = ((item.cant ?: 0.0) * (item.costuni ?: 0.0)).toString(),
+                        iva = ((item.cant ?: 0.0) * (item.costuni ?: 0.0) * 0.16).toString()
+                    )
+                }
+
+                db.kdm2Dao().insertaPartidas(partidas)
+
+                Toast.makeText(this@VentasActivity, "Documento guardado localmente", Toast.LENGTH_SHORT).show()
+                finish()
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this@VentasActivity, "Error al guardar: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
-        adapter.notifyDataSetChanged()
     }
 
 }
