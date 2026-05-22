@@ -10,5 +10,6 @@ data class existencia(
     @SerializedName("Clave") val cve: String? = null,
     @SerializedName("Auxiliar") val aux: String? = null,
     @SerializedName("Existencia") val exist: String? = null,
+    @SerializedName("Fecha") val fec: String? = null,
     @SerializedName("Err") val err: String? = null
 )

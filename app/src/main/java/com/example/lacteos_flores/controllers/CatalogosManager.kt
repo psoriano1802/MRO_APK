@@ -371,7 +371,8 @@ class CatalogosManager(private val db: AppDatabase) {
                         ExistenciaEntity(
                             clave = prod.cve.toString(),
                             auxiliar = prod.aux.toString(),
-                            existencias = prod.exist.toString()
+                            existencias = prod.exist.toString(),
+                            fecha = prod.fec.toString()
                         )
                     )
                 }
@@ -608,6 +609,7 @@ class CatalogosManager(private val db: AppDatabase) {
 
                         )
                     )
+                    println("factura $listaParaGuardar")
                 }
 
                 db.carteraDao().eliminarTodo()

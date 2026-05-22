@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class ExistenciaEntity(
     val clave: String,
     val auxiliar: String,
-    val existencias: String
+    val existencias: String,
+    val fecha: String
 
 )

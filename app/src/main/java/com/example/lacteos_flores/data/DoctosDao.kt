@@ -16,4 +16,6 @@ interface DoctosDao {
     @Query("SELECT * FROM documentos")
     suspend fun obtenerDocumentos(): List<DoctosEntity>
 
+    @Query("SELECT * FROM documentos WHERE (gen || nat || grp || tipo) = :gen LIMIT 1")
+    suspend fun obtenerDocumentoPorGen(gen: String): DoctosEntity?
 }

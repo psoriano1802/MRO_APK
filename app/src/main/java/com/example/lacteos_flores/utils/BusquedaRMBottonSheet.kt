@@ -1,6 +1,7 @@
 package com.example.lacteos_flores.utils
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -34,8 +35,6 @@ class BusquedaRMBottomSheet(
     private lateinit var db: AppDatabase
     private var ultimaSeleccion: ProductoUI? = null
 
-    private var viendoLotes = false
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -43,47 +42,46 @@ class BusquedaRMBottomSheet(
         binding = DialogBuscarRefaccionBinding.inflate(inflater, container, false)
         return binding.root
     }
-    // 1. Nueva función para buscar lotes en la DB local
-    private fun mostrarSeleccionLotes(producto: ProductoUI) {
+    // 1. Función para calcular existencias totales y preparar selección FIFO
+    private fun seleccionarConLoteFIFO(producto: ProductoUI) {
         lifecycleScope.launch {
-            // buscamos los lotes para validar si existen
-            //consultamos la tabla de existencias para obtener los lotes disponibles para el producto y las cantidades para validar que se cuente con existencia disponible
-            //val lotesDisponibles = db.existenciasDao().obtenerExistencia(producto.cve.toString())
-            val listusr = db.usuarioDao().obtenerUsuario(user)?.lista
-            val lotesDisponibles = db.listaPreciosDao().obtenerProductosConExistencia("%${producto.cve}%", listusr.toString())
-            println("lotesDisponibles:"+lotesDisponibles)
-            // UI: Cambios visuales
-            binding.btnVolver.visibility = View.VISIBLE // Mostramos el botón volver
-            binding.etBusqueda.visibility = View.GONE
-            binding.btnBuscar.visibility = View.GONE
-            binding.tvTitulo.text = "Seleccione Lote para ${producto.cve}"
-            if (lotesDisponibles?.isNotEmpty() == true) {
-                viendoLotes = true
-                val listProductoAux = lotesDisponibles.map {
-                    ProductoUI(
-                        cve = it.clave,//clave del produccto con control auxiliar
-                        cant = it.existencia,// cantidad del producto con control auxiliar
-                        descripcion = "Aux: ${it.pedimento} - Stock: ${it.existencia}",//descripcion del producto con control auxiliar// lote del producto con control auxiliar
+            try {
+                // Buscamos todos los lotes con existencia > 0 ordenados por fecha
+                val lotesDisponibles = db.existenciasDao().obtenerLotesDisponibles(producto.cve ?: "")
+                
+                if (lotesDisponibles.isNotEmpty()) {
+                    // Calculamos la existencia total sumando todos los lotes
+                    val stockTotal = lotesDisponibles.sumOf { it.existencias.toDoubleOrNull() ?: 0.0 }
+                    
+                    // Guardamos la información en ultimaSeleccion
+                    // Usamos el stock total como límite máximo de venta
+                    ultimaSeleccion = producto.copy(
+                        cant = stockTotal, 
+                        lote = "MULTIPLE", // Marcador para que VentasActivity sepa que debe prorratear lotes
+                        descripcion = producto.descripcion
                     )
-                }
-
-                // Cambiamos el adapter por uno de lotes (o el mismo con flag)
-                val adapterLotes = ResultadoBuscarRMAdapter(listProductoAux) { loteSeleccionado ->
-                    // Al seleccionar el lote, actualizamos ultimaSeleccion y habilitamos el botón Agregar
-                    ultimaSeleccion = producto.copy(cant = loteSeleccionado.cant, descripcion = loteSeleccionado.descripcion)
+                    
                     binding.btnAgregar.isEnabled = true
-                    println("loteSeleccionadoCant:"+loteSeleccionado.costuni)
-                    //Toast.makeText(requireContext(), "Lote seleccionado: ${loteSeleccionado.cve}", Toast.LENGTH_SHORT).show()
+                    binding.etCantidad.requestFocus()
+                    
+                    // Pre-llenamos el precio si está habilitado
+                    if(tipobusqueda == "1"){
+                        binding.etPrecio.setText(producto.costuni?.toString() ?: "0.0")
+                    }
+                    
+                    val mensaje = "Stock Total: $stockTotal (${lotesDisponibles.size} lotes disponibles)"
+                    Toast.makeText(requireContext(), mensaje, Toast.LENGTH_SHORT).show()
+                } else {
+                    ultimaSeleccion = producto.copy(cant = 0.0)
+                    Toast.makeText(requireContext(), "Producto sin existencias en inventario local", Toast.LENGTH_LONG).show()
                 }
-                binding.recyclerResultadosRM.adapter = adapterLotes
-            } else {
-                // Si no hay lotes, procedemos normal como lo tenías
-                ultimaSeleccion = producto
-                println("ultimaSeleccionsinlote:"+ultimaSeleccion?.cve)
-                Toast.makeText(requireContext(), "Producto sin lotes, ingrese cantidad", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Log.e("BusquedaRM", "Error calculando stock FIFO", e)
+                Toast.makeText(requireContext(), "Error al obtener existencias", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         apiService = RetrofitClient.apiService
@@ -113,51 +111,45 @@ class BusquedaRMBottomSheet(
             if (!validarCampos()) {
                 return@setOnClickListener
             }
-            // Si el producto requiere lote y no se ha seleccionado (y estamos en modo lotes)
-            if (viendoLotes && ultimaSeleccion?.cve.isNullOrEmpty()) {
-                Toast.makeText(requireContext(), "Debe seleccionar un lote", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
 
-            var cantidadText = ""
-            var cantidad: Double = 0.0
-            var precioText: String= ""
-            var costoUnitario: Double = 0.0
-            var importe=""
-            if(tipobusqueda == "1"){
-                // Tomamos la cantidad y precio de los EditText
-                cantidadText = binding.etCantidad.text.toString()
-                cantidad = cantidadText.toDoubleOrNull() ?: 0.0
-                precioText = ultimaSeleccion?.costuni.toString() ?: ""
-                costoUnitario = ultimaSeleccion?.cant ?: 0.0
-                println("lote cantiad:"+ultimaSeleccion?.cant ?: 0.0)
-                println("lote:"+ultimaSeleccion?.cve)
-                println("cantidad:"+cantidad)
-                importe= (costoUnitario * cantidad).toString()
-                if(cantidad > costoUnitario){
-                    Toast.makeText(requireContext(), "Cantidad ingresada mayor a la disponible", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-
-            }
-
-
-            // Validar que haya un producto seleccionado de la lista
-            if (ultimaSeleccion == null) {
+            // Validar que haya un producto seleccionado
+            val seleccion = ultimaSeleccion
+            if (seleccion == null) {
                 Toast.makeText(requireContext(), "Seleccione un producto", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // Construimos un nuevo ProductoUI con cantidad y precio
-            val productoConDatos = ultimaSeleccion!!.copy(
-                cant = cantidadText.toDouble(),
-                costuni = costoUnitario,
-                importe = importe.toDouble()
+            val cantidadIngresada = binding.etCantidad.text.toString().toDoubleOrNull() ?: 0.0
+            val stockDisponible = seleccion.cant ?: 0.0 // En el BottomSheet, cant se usa para el stock disponible
+            
+            if (cantidadIngresada <= 0) {
+                binding.etCantidad.error = "Ingrese una cantidad válida"
+                return@setOnClickListener
+            }
+
+            if (cantidadIngresada > stockDisponible) {
+                Toast.makeText(requireContext(), "Cantidad ingresada ($cantidadIngresada) mayor a la disponible ($stockDisponible)", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            // El precio se toma del EditText si es editable, o de la selección
+            val precioFinal = if (tipobusqueda == "1") {
+                binding.etPrecio.text.toString().toDoubleOrNull() ?: seleccion.costuni ?: 0.0
+            } else {
+                seleccion.costuni ?: 0.0
+            }
+
+            val importeFinal = cantidadIngresada * precioFinal
+
+            // Construimos el ProductoUI final para enviar al callback
+            val productoParaVenta = seleccion.copy(
+                cant = cantidadIngresada,
+                costuni = precioFinal,
+                importe = importeFinal
             )
-            println("productoConDatos:"+productoConDatos)
-            // Enviamos el producto al callback para que se agregue al RecyclerView principal
-            onItemSelected(productoConDatos)
-            // Cerramos el BottomSheet
+            
+            println("Agregando producto a venta: $productoParaVenta")
+            onItemSelected(productoParaVenta)
             dismiss()
         }
 
@@ -182,51 +174,47 @@ class BusquedaRMBottomSheet(
 
         return true
     }
-    //funcion para hacer la busqueda de los activos en base a la opcion seleccionada
+    //funcion para hacer la busqueda de los productos en base a la opcion seleccionada
     private fun buscar(texto: String) {
         lifecycleScope.launch {
             try {
-                val prod = db.productosDao().obtenerTodosProductos("%${texto}%")
-                val proExis = db.existenciasDao().obtenerExistencia("%${texto}%")
-                val proExisAux = db.existenciasDao().obtenerExistencia("%${texto}%")
-                //parseamos el listado de productos obtenidos desde la base
-                if(proExis?.isEmpty() == true && proExisAux?.isEmpty() == true){
-                    Toast.makeText(requireContext(), "Producto no cuenta con existencias para realizar la venta, Solicite una Recarga y Actualice Informacion!", Toast.LENGTH_SHORT).show()
+                // 1. Obtenemos la lista de precios asignada al usuario
+                val usuarioInfo = db.usuarioDao().obtenerUsuario(user)
+                val listaId = usuarioInfo?.lista ?: ""
+                
+                // 2. Buscamos los productos con el precio de la lista correspondiente
+                // Usamos la función en ListaPrecioDao que ya hace el JOIN con el precio correcto
+                val prod = db.listaPreciosDao().obtenerProductosConExistencia("%${texto}%", listaId)
+                
+                if(prod.isEmpty()){
+                    Toast.makeText(requireContext(), "No se encontraron productos con existencias o en la lista de precios", Toast.LENGTH_SHORT).show()
                     return@launch
                 }
-                if (prod.isNotEmpty()) {
-                    val listaProductosUI = prod.map {
-                        ProductoUI(
-                            cve = it.clave,//clave del producto
-                            uni = it.unidad,//unidad del producto
-                            costuni = it.precio1.toDoubleOrNull(),//precio del producto
-                            descripcion = it.descripcion
-                        )
-                    }
-                    if(binding.recyclerResultadosRM.adapter == null){
-                        binding.recyclerResultadosRM.layoutManager = LinearLayoutManager(requireContext())
-                        val adapter = ResultadoBuscarRMAdapter(listaProductosUI) { seleccionado ->
-                                //onItemSelected(seleccionado)
-                                // ActualizarultimaSeleccion = seleccionado
-                                ///dismiss()
-                                mostrarSeleccionLotes(seleccionado)
-                            }
-                        binding.recyclerResultadosRM.adapter = adapter
-                    }else{
-                        // Si ya existe el adapter, actualizar los datos
-                        (binding.recyclerResultadosRM.adapter as? ResultadoBuscarRMAdapter)?.let { adapter ->
-                            adapter.actualizarLista(listaProductosUI)
+
+                val listaProductosUI = prod.map {
+                    ProductoUI(
+                        cve = it.clave,//clave del producto
+                        uni = it.unidad,//unidad del producto
+                        costuni = it.precio1.toDoubleOrNull(),//precio de la tabla listaprecios (mapeado a precio1 en el query)
+                        descripcion = it.descripcion
+                    )
+                }
+                
+                if(binding.recyclerResultadosRM.adapter == null){
+                    binding.recyclerResultadosRM.layoutManager = LinearLayoutManager(requireContext())
+                    val adapter = ResultadoBuscarRMAdapter(listaProductosUI) { seleccionado ->
+                            seleccionarConLoteFIFO(seleccionado)
                         }
+                    binding.recyclerResultadosRM.adapter = adapter
+                }else{
+                    // Si ya existe el adapter, actualizar los datos
+                    (binding.recyclerResultadosRM.adapter as? ResultadoBuscarRMAdapter)?.let { adapter ->
+                        adapter.actualizarLista(listaProductosUI)
                     }
-
-
-                } else {
-                    Toast.makeText(requireContext(), "Producto no encontrado", Toast.LENGTH_SHORT).show()
-
                 }
 
             } catch (e: Exception) {
-                System.out.println("error:"+e.message)
+                Log.e("BusquedaRM", "Error en la búsqueda: ${e.message}")
                 Toast.makeText(requireContext(), "Error en la búsqueda", Toast.LENGTH_SHORT).show()
             }
         }
@@ -234,7 +222,6 @@ class BusquedaRMBottomSheet(
 
     // Función para REGRESAR a la búsqueda de productos
     private fun restaurarModoBusqueda() {
-        viendoLotes = false
         ultimaSeleccion = null // Limpiamos selección previa
 
         // UI: Restauramos visibilidad

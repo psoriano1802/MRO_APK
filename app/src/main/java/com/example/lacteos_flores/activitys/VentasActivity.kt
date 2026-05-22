@@ -1,7 +1,11 @@
 package com.example.lacteos_flores.activitys
 
+import android.Manifest
+import android.util.Log
 import android.app.DatePickerDialog
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
@@ -12,7 +16,10 @@ import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -23,6 +30,7 @@ import com.example.lacteos_flores.adapters.RefaccionesAdapter
 import com.example.lacteos_flores.data.AppDatabase
 import com.example.lacteos_flores.data.ClientsEntity
 import com.example.lacteos_flores.data.DoctosEntity
+import com.example.lacteos_flores.data.ItemAuxEntity
 import com.example.lacteos_flores.data.Kdm1Entity
 import com.example.lacteos_flores.data.Kdm2Entity
 import com.example.lacteos_flores.data.PantallasEntity
@@ -37,6 +45,7 @@ import com.example.lacteos_flores.models.modelsUI.ProductoUI
 import com.example.lacteos_flores.utils.BusquedaRMBottomSheet
 import com.example.lacteos_flores.utils.BusquedaTecBottonSheet
 import com.example.lacteos_flores.utils.Prefs
+import com.example.lacteos_flores.utils.TicketPrinter
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -75,6 +84,18 @@ class VentasActivity : AppCompatActivity() {
 
     private lateinit var hproductsAdapter: RefaccionesAdapter
 
+    // Launcher para permisos de Bluetooth
+    private val requestBluetoothPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions.entries.all { it.value }
+        if (granted) {
+            Toast.makeText(this, "Permisos concedidos. Intente imprimir de nuevo.", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Se requieren permisos de Bluetooth para imprimir.", Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_ventas)
@@ -107,8 +128,10 @@ class VentasActivity : AppCompatActivity() {
         //inicializamos la base de datos
         db = AppDatabase.getDatabase(this)
         loginUserDao = db.usuarioDao()
-        //inicializamos el adapter
-        hproductsAdapter = RefaccionesAdapter(mutableListOf(), listOf("Clave", "Cant", "Uni", "Precio", "Importe"))
+        //inicializamos el adapter con callback para recalcular totales automáticamente al editar/eliminar
+        hproductsAdapter = RefaccionesAdapter(mutableListOf(), listOf("Clave", "Cant", "Uni", "Precio", "Importe")) {
+            calcularTotales()
+        }
         recyclerView.adapter = hproductsAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
@@ -146,8 +169,19 @@ class VentasActivity : AppCompatActivity() {
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.adapterPosition
-                hproductsAdapter.eliminarItem(position)
-                calcularTotales()
+                
+                AlertDialog.Builder(this@VentasActivity)
+                    .setTitle("Eliminar Producto")
+                    .setMessage("¿Está seguro de que desea eliminar este producto de la lista?")
+                    .setPositiveButton("Eliminar") { _, _ ->
+                        hproductsAdapter.eliminarItem(position)
+                    }
+                    .setNegativeButton("Cancelar") { dialog, _ ->
+                        hproductsAdapter.notifyItemChanged(position)
+                        dialog.dismiss()
+                    }
+                    .setCancelable(false)
+                    .show()
             }
         })
         itemTouchHelper.attachToRecyclerView(recyclerView)
@@ -248,7 +282,7 @@ class VentasActivity : AppCompatActivity() {
     //funcion para reallizar la busqueda de productos
     private fun buscarProductos() {
         val bottomSheet = BusquedaRMBottomSheet("1") { resultadoSeleccionado ->
-            val cant = 1.0
+            val cant = resultadoSeleccionado.cant ?: 0.0
             val impo = (resultadoSeleccionado.costuni ?: 0.0) * cant
             val refaccion = ProductoUI(resultadoSeleccionado.cve, cant, resultadoSeleccionado.uni, resultadoSeleccionado.costuni, impo, resultadoSeleccionado.descripcion)
 
@@ -291,6 +325,12 @@ class VentasActivity : AppCompatActivity() {
     }
 
     private fun GuardadDocumentosLocal() {
+        // Primero verificamos permisos antes de proceder con el guardado si queremos imprimir
+        if (!tienePermisosBluetooth()) {
+            solicitarPermisosBluetooth()
+            return
+        }
+
         val cliente = etCodigoCliente.text.toString()
         val listaPartidas = hproductsAdapter.obtenerLista()
         val subtotalValue = etSubTotal.text.toString().toDoubleOrNull() ?: 0.0
@@ -322,7 +362,7 @@ class VentasActivity : AppCompatActivity() {
 
                 // Header (Kdm1)
                 val kdm1 = Kdm1Entity(
-                    suc = "0",
+                    suc = "1",
                     alm = almacen,
                     gen = docConfig.gen,
                     nat = docConfig.nat,
@@ -334,7 +374,8 @@ class VentasActivity : AppCompatActivity() {
                     pari = "1.0",
                     rfc = selectedClient?.rfc ?: "",
                     venc = fecha,
-                    condi = "CONTADO",
+                    //tomamos el tipo de documento seleccionado
+                    condi = spTipoDoc.selectedItem.toString(),
                     agent = usuario ?: "",
                     lati = selectedClient?.latitud ?: "0.0",
                     long = selectedClient?.longitud ?: "0.0",
@@ -346,30 +387,87 @@ class VentasActivity : AppCompatActivity() {
 
                 val idDoc = db.kdm1Dao().insertaDocumento(kdm1)
 
-                // Partidas (Kdm2)
-                val partidas = listaPartidas.mapIndexed { index, item ->
-                    Kdm2Entity(
+                // Partidas (Kdm2) e inventario
+                val partidas = mutableListOf<Kdm2Entity>()
+                val partidasAux = mutableListOf<ItemAuxEntity>()
+
+                listaPartidas.forEachIndexed { index, item ->
+                    val partidaNum = (index + 1).toString()
+                    var cantidadRestante = item.cant ?: 0.0
+
+                    // 1. Crear Partida Kdm2 (Encabezado de la partida)
+                    partidas.add(Kdm2Entity(
                         iddoc = idDoc,
-                        suc = "0",
+                        suc = "1",
                         alm = almacen,
                         gen = docConfig.gen,
                         nat = docConfig.nat,
                         grp = docConfig.grp,
                         tip = docConfig.tipo,
-                        partida = (index + 1).toString(),
+                        partida = partidaNum,
                         producto = item.cve ?: "",
-                        cantidad = item.cant.toString(),
+                        cantidad = cantidadRestante.toString(),
                         descrip = item.descripcion ?: "",
                         unidad = item.uni ?: "",
                         precio = item.costuni.toString(),
                         importe = ((item.cant ?: 0.0) * (item.costuni ?: 0.0)).toString(),
                         iva = ((item.cant ?: 0.0) * (item.costuni ?: 0.0) * 0.16).toString()
-                    )
+                    ))
+
+                    // 2. Lógica FIFO para descontar de múltiples lotes si es necesario
+                    val lotesDisponibles = db.existenciasDao().obtenerLotesDisponibles(item.cve ?: "")
+                    
+                    for (loteEntity in lotesDisponibles) {
+                        if (cantidadRestante <= 0) break
+
+                        val stockEnLote = loteEntity.existencias.toDoubleOrNull() ?: 0.0
+                        if (stockEnLote <= 0) continue
+
+                        val cantATomar = if (cantidadRestante <= stockEnLote) cantidadRestante else stockEnLote
+                        
+                        // Registro en ItemAux para este lote
+                        partidasAux.add(ItemAuxEntity(
+                            iddoc = idDoc,
+                            suc = "1",
+                            alm = almacen,
+                            gen = docConfig.gen,
+                            nat = docConfig.nat,
+                            grp = docConfig.grp,
+                            tip = docConfig.tipo,
+                            auxiliar = loteEntity.auxiliar,
+                            partida = partidaNum,
+                            producto = item.cve ?: "",
+                            cantidad = cantATomar.toString()
+                        ))
+
+                        // Actualización de Existencias en la base de datos local
+                        val nuevoStock = stockEnLote - cantATomar
+                        db.existenciasDao().actualizarExistencia(
+                            item.cve ?: "",
+                            loteEntity.auxiliar,
+                            String.format(Locale.US, "%.2f", nuevoStock)
+                        )
+
+                        cantidadRestante -= cantATomar
+                    }
+                    
+                    // Si después de recorrer lotes aún queda cantidadRestante, 
+                    // significa que se vendió más de lo que había en lotes (o no había lotes)
+                    if (cantidadRestante > 0) {
+                        Log.w("Ventas", "Atención: El producto ${item.cve} se vendió con saldo negativo en lotes por $cantidadRestante")
+                    }
                 }
 
                 db.kdm2Dao().insertaPartidas(partidas)
+                if (partidasAux.isNotEmpty()) {
+                    db.itemAuxDao().insertaPartidasAux(partidasAux)
+                }
 
                 Toast.makeText(this@VentasActivity, "Documento guardado localmente", Toast.LENGTH_SHORT).show()
+                
+                // Imprimir ticket después de guardar
+                imprimirTicketVenta(kdm1, listaPartidas)
+
                 finish()
 
             } catch (e: Exception) {
@@ -379,4 +477,85 @@ class VentasActivity : AppCompatActivity() {
         }
     }
 
+    private fun tienePermisosBluetooth(): Boolean {
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        return permissions.all {
+            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun solicitarPermisosBluetooth() {
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        requestBluetoothPermissionLauncher.launch(permissions)
+    }
+
+    private fun imprimirTicketVenta(header: Kdm1Entity, partidas: List<ProductoUI>) {
+        val printer = TicketPrinter(this)
+        // Actualizado con el nombre real de tu impresora: Printer001-664B
+            printer.connectAndPrint("Printer001") {
+            setAlignCenter()
+            setBold(true)
+            setLargeFont(false)
+            printText("PRODUCTOS LACTEOS FLORES\n")
+
+            setLargeFont(false)
+            setBold(false)
+            printText("R.F.C.: PLF010228TC3\n")
+            printText("Calle: NICOLAS BRAVO\n")
+            printText("Colonia: CENTRO\n")
+            printText("Municipio: JIQUILPAN\n")
+            printText("Telefono: 3535330998\n")
+            printText("\n")
+            printText("TICKET DE VENTA\n")
+            printText("Impresion:${etFecha.text}\n")
+            printDivider()
+
+            setAlignLeft()
+            printText("Forma de Venta: ${header.condi}\n")
+            printText("Cliente: ${header.cliente}\n")
+            printText("Nombre: ${etNombreCliente.text}\n")
+            printDivider()
+
+            // Formato de columnas para 32 caracteres (58mm)
+            // CLAVE(8) CANT(5) PRECIO(9) TOTAL(10)
+            val headerRow = String.format(Locale.US, "%-8s %-25s %-5s %-9s %-10s\n", "Clave","Producto" ,"Cant", "Precio", "Total")
+            printText(headerRow)
+            printDivider()
+
+            for (item in partidas) {
+                println("item${item.descripcion}")
+                val line = String.format(Locale.US, "%-8s %-25s  %-5.1f %-9.2f %-10.2f\n",
+                    item.cve?.take(8) ?: "",
+                    item.descripcion ?: "",
+                    item.cant ?: 0.0,
+                    item.costuni ?: 0.0,
+                    (item.cant ?: 0.0) * (item.costuni ?: 0.0)
+                )
+                printText(line)
+                // Descripción en la siguiente línea si existe
+                /*item.descripcion?.let {
+                    if (it.isNotEmpty()) printText("${it.take(32)}\n")
+                }*/
+            }
+            printDivider()
+
+            setAlignRight()
+            printText("Subtotal: $ ${header.subtotal}\n")
+            printText("Impuesto: $ ${header.iva}\n")
+            setBold(true)
+            printText("TOTAL: $ ${header.monto}\n")
+            setBold(false)
+
+            setAlignCenter()
+            printText("\n¡Gracias por su prefencia!\n")
+        }
+    }
 }

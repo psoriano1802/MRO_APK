@@ -12,7 +12,8 @@ import com.example.lacteos_flores.models.modelsUI.ProductoUI
 
 class RefaccionesAdapter (
     private val refacciones: MutableList<ProductoUI>,
-    private var headers: List<String> //headers dinamicos
+    private var headers: List<String>, //headers dinamicos
+    private val onItemChanged: () -> Unit // Callback para notificar cambios (edición/eliminación)
 ):RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     //--tipos de vista---
@@ -43,12 +44,6 @@ class RefaccionesAdapter (
         return if (position == 0) {TYPE_HEADER} else {TYPE_ITEM}
     }
 
-    /*override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RefaccionesViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_refacciones, parent, false)
-        return RefaccionesViewHolder(view)
-    }*/
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return if (viewType == TYPE_HEADER) {
             val view = LayoutInflater.from(parent.context)
@@ -60,7 +55,7 @@ class RefaccionesAdapter (
             RefaccionesViewHolder(view)
         }
     }
-    //cmabiamos eltipo  RefaccionesViewHolder por RecylcerView.ViewHolader paraporintrgear los header y los items
+
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         if(holder is HeaderViewHolder){
             holder.col1.text = headers.getOrNull(0) ?: "Clave"
@@ -75,10 +70,9 @@ class RefaccionesAdapter (
             holder.cantidad.text = refaccion.cant.toString()
             holder.unidad.text = refaccion.uni
             holder.costoUnitario.text = "$${refaccion.costuni}"
-            //calculamos el importe
-            System.out.println("refaccion123:"+refaccion.costuni+"cantidad:"+refaccion.cant+"importe:"+refaccion.importe)
-            var importe = refaccion.cant?.let { refaccion.costuni?.toDouble()?.times(it.toDouble()) }
-            holder.importe.text = "$${importe.toString()}"
+            
+            val totalImporte = (refaccion.cant ?: 0.0) * (refaccion.costuni ?: 0.0)
+            holder.importe.text = "$${String.format("%.2f", totalImporte)}"
             holder.descripcion.text = refaccion.descripcion
 
             holder.itemView.setOnClickListener {
@@ -92,42 +86,34 @@ class RefaccionesAdapter (
     //Cambiar headers dinamicamente
     fun actualizarHeader(nvoHeaders: List<String>){
         headers = nvoHeaders
-        notifyItemChanged(0)//solo refrescamso headers
+        notifyItemChanged(0)
     }
 
-    //metodo de manipulacionde datos
-    // ✅ Agregar un solo ítem
     fun agregarItem(refaccion: ProductoUI) {
         refacciones.add(refaccion)
         notifyItemInserted(refacciones.size)
+        onItemChanged()
     }
 
-    // ✅ Agregar lista completa
-    fun agregarLista(nuevaLista: List<ProductoUI>) {
-        val startPos = refacciones.size
-        refacciones.addAll(nuevaLista)
-        notifyItemRangeInserted(startPos + 1, nuevaLista.size)
-    }
-    // ✅ Eliminar con swipe
-    fun eliminarItem(pos: Int) {
-        if (pos in refacciones.indices) {
-            refacciones.removeAt(pos - 1)
-            notifyItemRemoved(pos)
+    fun eliminarItem(adapterPos: Int) {
+        val listPos = adapterPos - 1
+        if (listPos in refacciones.indices) {
+            refacciones.removeAt(listPos)
+            notifyItemRemoved(adapterPos)
+            onItemChanged()
         }
     }
 
-    //obtenemos el listado de refacciones
     fun obtenerLista(): List<ProductoUI> = refacciones
 
-    // 🔹 Mostrar diálogo de edición
-    private fun mostrarDialogoEdicion(view: View, position: Int) {
-        val refaccion = refacciones[position]
+    private fun mostrarDialogoEdicion(view: View, listPosition: Int) {
+        val refaccion = refacciones[listPosition]
 
         val dialogView = LayoutInflater.from(view.context)
             .inflate(R.layout.dialog_editar_item, null)
 
-        val etCantidad:  EditText = dialogView.findViewById(R.id.et_cantidad_edit)
-        val etPrecio:  EditText = dialogView.findViewById(R.id.et_precio_edit)
+        val etCantidad: EditText = dialogView.findViewById(R.id.et_cantidad_edit)
+        val etPrecio: EditText = dialogView.findViewById(R.id.et_precio_edit)
 
         etCantidad.setText(refaccion.cant?.toString() ?: "")
         etPrecio.setText(refaccion.costuni?.toString() ?: "")
@@ -141,8 +127,11 @@ class RefaccionesAdapter (
 
                 if (nuevaCantidad != null) refaccion.cant = nuevaCantidad
                 if (nuevoPrecio != null) refaccion.costuni = nuevoPrecio
+                
+                refaccion.importe = (refaccion.cant ?: 0.0) * (refaccion.costuni ?: 0.0)
 
-                notifyItemChanged(position + 1)
+                notifyItemChanged(listPosition + 1)
+                onItemChanged()
             }
             .setNegativeButton("Cancelar", null)
             .show()

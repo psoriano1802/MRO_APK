@@ -13,14 +13,19 @@ interface ListaPrecioDao {
     @Query("SELECT * FROM listaprecios WHERE clave like :cve and listaid = :listaid ")
     suspend fun obtenerListado(cve: String, listaid: String): ListaPreciosEntity?
 
-    //buscamos el productos y sus lote
+    //buscamos el productos y sus existencia total
     @Query("""
-    SELECT p.clave, p.descripcion,p.cb,p.unidad,p.unidadalt, l.precio precio1,p.precio2,p.precio3,p.precio4,p.iva,p.ieps,p.ubicaalm,p.serie,p.lotesf,p.tmc,p.ubicacionn,e.auxiliar pedimento, SUM(e.existencias) as existencia
+    SELECT p.clave, p.descripcion, p.cb, p.unidad, p.unidadalt, 
+           COALESCE(l.precio, '0.0') as precio1, 
+           p.precio2, p.precio3, p.precio4, p.iva, p.ieps, p.ubicaalm, 
+           p.serie, p.lotesf, p.tmc, p.ubicacionn, 
+           '' as pedimento, 
+           SUM(CAST(COALESCE(e.existencias, '0') AS DOUBLE)) as existencia
     FROM productos p
     LEFT JOIN existencias e ON p.clave = e.clave
-    LEFT JOIN listaprecios l ON p.clave = l.clave and l.listaid = :listaid
+    LEFT JOIN listaprecios l ON p.clave = l.clave AND l.listaid = :listaid
     WHERE p.descripcion LIKE :filtro OR p.clave LIKE :filtro
-    GROUP BY p.clave,e.auxiliar
+    GROUP BY p.clave
 """)
     suspend fun obtenerProductosConExistencia(filtro: String, listaid: String): List<ProductosEntity>
 

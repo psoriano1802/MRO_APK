@@ -27,6 +27,7 @@ data class Kdm1Entity(
     val subtotal: String,
     val iva: String,
     val monto: String,
+    val porAsignar: String = "0.00",
+    val banco: String = "",
     val staSinc: String
-
 )

@@ -4,7 +4,12 @@ import android.icu.text.SimpleDateFormat
 import android.os.Bundle
 import android.view.View
 import android.widget.*
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -13,7 +18,10 @@ import com.example.lacteos_flores.adapters.FacturasAdapter
 import com.example.lacteos_flores.data.AppDatabase
 import com.example.lacteos_flores.data.CarteraEntity
 import com.example.lacteos_flores.data.ClientsEntity
+import com.example.lacteos_flores.data.Kdm1Entity
+import com.example.lacteos_flores.data.Kdm2cxcEntity
 import com.example.lacteos_flores.utils.Globales
+import com.example.lacteos_flores.utils.TicketPrinter
 import kotlinx.coroutines.launch
 import java.util.*
 
@@ -39,6 +47,18 @@ class CobrosActivity : AppCompatActivity() {
     private var clienteSeleccionado: ClientsEntity? = null
     private var listaFacturasOriginal: List<CarteraEntity> = emptyList()
     private val db by lazy { AppDatabase.getDatabase(this) }
+
+    // Launcher para permisos de Bluetooth
+    private val requestBluetoothPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions.entries.all { it.value }
+        if (granted) {
+            Toast.makeText(this, "Permisos concedidos. Intente de nuevo.", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Se requieren permisos de Bluetooth para imprimir.", Toast.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -240,12 +260,18 @@ class CobrosActivity : AppCompatActivity() {
     }
 
     private fun registrarCobro() {
-        val montoTotal = etMontoCobro.text.toString()
+        // Verificar permisos antes de registrar para poder imprimir el ticket al finalizar
+        if (!tienePermisosBluetooth()) {
+            solicitarPermisosBluetooth()
+            return
+        }
+
+        val montoTotalStr = etMontoCobro.text.toString()
         if (clienteSeleccionado == null) {
             Globales.showToast(this, "Seleccione un cliente")
             return
         }
-        if (montoTotal.isEmpty() || montoTotal.toDouble() <= 0) {
+        if (montoTotalStr.isEmpty() || montoTotalStr.toDouble() <= 0) {
             Globales.showToast(this, "Ingrese un monto válido")
             return
         }
@@ -257,29 +283,177 @@ class CobrosActivity : AppCompatActivity() {
         }
 
         val formaPago = spFormaPago.selectedItem.toString()
-        val banco = if (formaPago == "Transferencia") spBanco.selectedItem?.toString() ?: "" else "N/A"
-
-        // Validaciones adicionales
-        val totalSeleccionado = seleccionadas.sumOf { it.saldo.toDoubleOrNull() ?: 0.0 }
-        if (montoTotal.toDouble() > totalSeleccionado + 0.01) { // Pequeño margen por decimales
-             // Opcional: permitir cobros a favor o restringir
-             // Globales.showToast(this, "El monto del cobro excede el saldo de las facturas seleccionadas")
-        }
-
+        val bancoSeleccionado = if (formaPago == "Transferencia") spBanco.selectedItem?.toString()?.split(" - ")?.first() ?: "" else "N/A"
 
         lifecycleScope.launch {
             try {
-                // Aquí se llamaría al WS real. 
-                // Por ahora simulamos éxito y mostramos resumen
-                val mensaje = "Cobro registrado por $$montoTotal vía $formaPago\nCliente: ${clienteSeleccionado?.nombre}"
+                // 1. Obtener datos del usuario
+                val userKey = Globales.usuario ?: ""
+                val usuario = db.usuarioDao().obtenerUsuario(userKey)
+                if (usuario == null) {
+                    Globales.showToast(this@CobrosActivity, "Error: Usuario no encontrado")
+                    return@launch
+                }
+
+                // 2. Obtener documento (UA51 o UA52)
+                val docGen = if (formaPago == "Transferencia") "UA51" else "UA52"
+                val doctoConfig = db.doctosDao().obtenerDocumentoPorGen(docGen)
+                if (doctoConfig == null) {
+                    Globales.showToast(this@CobrosActivity, "Configuración $docGen no encontrada")
+                    return@launch
+                }
+
+                // 3. Preparar Encabezado (Kdm1)
+                val fechaActual = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val kdm1 = Kdm1Entity(
+                    suc = "1",
+                    alm = usuario.cve_alma,
+                    gen = doctoConfig.gen,
+                    nat = doctoConfig.nat,
+                    grp = doctoConfig.grp,
+                    tip = doctoConfig.tipo,
+                    fecha = fechaActual,
+                    cliente = clienteSeleccionado!!.clave,
+                    moneda = "PESOS",
+                    pari = "1",
+                    rfc = clienteSeleccionado!!.rfc,
+                    venc = fechaActual,
+                    condi = "",
+                    agent = usuario.usuario,
+                    lati = "0.0",
+                    long = "0.0",
+                    subtotal = montoTotalStr,
+                    iva = "0.00",
+                    monto = montoTotalStr,
+                    porAsignar = "0.00",
+                    banco = bancoSeleccionado,
+                    staSinc = "N"
+                )
+
+                val idKdm1 = db.kdm1Dao().insertaDocumento(kdm1)
+
+                // 4. Preparar Partidas (Kdm2cxc)
+                val partidas = seleccionadas.filter { (it.abono.toDoubleOrNull() ?: 0.0) > 0 }.map { factura ->
+                    // Calculamos el saldo anterior (restituimos el abono al saldo que muestra el adapter si este fue modificado)
+                    val abonoVal = factura.abono.toDoubleOrNull() ?: 0.0
+                    val saldoActualVal = factura.saldo.toDoubleOrNull() ?: 0.0
+                    val saldoAnterior = String.format("%.2f", saldoActualVal + abonoVal)
+
+                    Kdm2cxcEntity(
+                        iddoc = idKdm1,
+                        doctoAfectado = factura.docto,
+                        saldoAnt = saldoAnterior,
+                        abono = factura.abono,
+                        fecha = fechaActual,
+                        descri = "PAGO DE FACTURA ${factura.docto}",
+                        moneda = "PESOS",
+                        montoDocto = factura.monto,
+                        pari = "1",
+                        referencia = "" 
+                    )
+                }
+                
+                db.kdm2cxcDao().insertarPartidas(partidas)
+
+                // 5. Actualizar saldos en la tabla Cartera local
+                for (factura in seleccionadas) {
+                    val saldoActualVal = factura.saldo.toDoubleOrNull() ?: 0.0
+                    val nuevoSaldoStr = String.format("%.2f", saldoActualVal)
+                    
+                    db.carteraDao().actualizarSaldo(
+                        clienteSeleccionado!!.clave,
+                        factura.docto,
+                        nuevoSaldoStr
+                    )
+                }
+
+                // 6. Imprimir ticket de cobro
+                imprimirTicketCobro(clienteSeleccionado!!, montoTotalStr, formaPago, seleccionadas)
+
+                val mensaje = "Cobro registrado por $$montoTotalStr vía $formaPago\nCliente: ${clienteSeleccionado?.nombre}"
                 android.app.AlertDialog.Builder(this@CobrosActivity)
                     .setTitle("Cobro Exitoso")
                     .setMessage(mensaje)
                     .setPositiveButton("Aceptar") { _, _ -> finish() }
                     .show()
+
             } catch (e: Exception) {
                 Globales.showToast(this@CobrosActivity, "Error al registrar: ${e.message}")
+                e.printStackTrace()
             }
+        }
+    }
+
+    private fun tienePermisosBluetooth(): Boolean {
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        return permissions.all {
+            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun solicitarPermisosBluetooth() {
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        requestBluetoothPermissionLauncher.launch(permissions)
+    }
+
+    private fun imprimirTicketCobro(cliente: ClientsEntity, monto: String, formaPago: String, facturas: List<CarteraEntity>) {
+        val printer = TicketPrinter(this)
+        // Actualizado con el nombre real de tu impresora: Printer001-664B
+        printer.connectAndPrint("Printer001") {
+            setAlignCenter()
+            setBold(true)
+            setLargeFont(false)
+            printText("PRODUCTOS LACTEOS FLORES\n")
+            setLargeFont(false)
+            setBold(false)
+            printText("R.F.C.: PLF010228TC3\n")
+            printText("Calle: NICOLAS BRAVO\n")
+            printText("Colonia: CENTRO\n")
+            printText("Municipio: JIQUILPAN\n")
+            printText("Telefono: 3535330998\n")
+            printText("\n")
+            printText("RECIBO DE PAGO\n")
+            printDivider()
+
+            setAlignLeft()
+            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+            printText("Fecha: ${sdf.format(Date())}\n")
+            printText("Cliente: ${cliente.clave}\n")
+            printText("Nombre: ${cliente.nombre}\n")
+            printDivider()
+
+            // Docto. | Saldo Ant. | Abono
+            val rowHeader = String.format(Locale.US, "%-10s %10s %10s\n", "DOCTO", "SALDO", "ABONO")
+            printText(rowHeader)
+            printDivider()
+
+            for (f in facturas) {
+                // Usamos f.docto que es el numero de factura
+                val line = String.format(Locale.US, "%-10s %10s %10s\n",
+                    f.docto.take(10),
+                    f.saldo,
+                    f.abono
+                )
+                printText(line)
+            }
+            printDivider()
+
+            setAlignRight()
+            setBold(true)
+            printText("TOTAL RECIBIDO: $ $monto\n")
+            setBold(false)
+            printText("FORMA DE PAGO: $formaPago\n")
+
+            setAlignCenter()
+            printText("\n¡Gracias por su pago!\n")
         }
     }
 }

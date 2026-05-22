@@ -18,6 +18,12 @@ interface ExistenciaDao {
     @Query("SELECT count(*) FROM existencias")
     suspend fun obtenerTodasExistencias(): Int
 
+    @Query("SELECT * FROM existencias WHERE clave = :cve AND CAST(existencias AS DOUBLE) > 0 ORDER BY fecha ASC")
+    suspend fun obtenerLotesDisponibles(cve: String): List<ExistenciaEntity>
+
+    @Query("UPDATE existencias SET existencias = :nuevaExistencia WHERE clave = :cve AND auxiliar = :auxiliar")
+    suspend fun actualizarExistencia(cve: String, auxiliar: String, nuevaExistencia: String)
+
     @Query("DELETE FROM existencias")
     suspend fun eliminarTodo()
 

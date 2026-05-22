@@ -8,6 +8,5 @@ data class ProductoUI(
     val descripcion: String? = null,
     val minutos: Double? = null,
     val horas: Double? = null,
-
+    var lote: String? = null
 )
-
