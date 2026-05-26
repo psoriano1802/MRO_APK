@@ -119,10 +119,20 @@ class RefaccionesAdapter (
     }
     // ✅ Eliminar con swipe
     fun eliminarItem(pos: Int) {
-        if (pos in refacciones.indices) {
-            refacciones.removeAt(pos - 1)
+        val index = pos - 1
+        if (index in refacciones.indices) {
+            refacciones.removeAt(index)
             notifyItemRemoved(pos)
+            // Opcional: Notificar cambios en los elementos siguientes para asegurar que las posiciones se mantengan sincronizadas
+            // notifyItemRangeChanged(pos, refacciones.size - index)
         }
+    }
+
+    // ✅ Limpiar lista
+    fun limpiarLista() {
+        val size = refacciones.size
+        refacciones.clear()
+        notifyItemRangeRemoved(1, size)
     }
 
     //obtenemos el listado de refacciones
@@ -138,18 +148,39 @@ class RefaccionesAdapter (
         val etCantidad:  EditText = dialogView.findViewById(R.id.et_cantidad_edit)
         val etPrecio:  EditText = dialogView.findViewById(R.id.et_precio_edit)
 
-        etCantidad.setText(refaccion.cant?.toString() ?: "")
-        etPrecio.setText(refaccion.costuni?.toString() ?: "")
+        // Identificamos si el item es Mano de Obra por la presencia de horas
+        val esManoObra = refaccion.horas != null
+
+        if (esManoObra) {
+            etCantidad.hint = "Horas"
+            etCantidad.setText(refaccion.horas?.toString() ?: "")
+            etPrecio.visibility = View.GONE // Solo horas en MO
+        } else {
+            etCantidad.hint = "Cantidad"
+            etCantidad.setText(refaccion.cant?.toString() ?: "")
+            etPrecio.setText(refaccion.costuni?.toString() ?: "")
+        }
 
         AlertDialog.Builder(view.context)
-            .setTitle("Editar Item")
+            .setTitle(if (esManoObra) "Editar Horas" else "Editar Item")
             .setView(dialogView)
             .setPositiveButton("Guardar") { _, _ ->
-                val nuevaCantidad = etCantidad.text.toString().toDoubleOrNull()
-                val nuevoPrecio = etPrecio.text.toString().toDoubleOrNull()
+                val nvoValor1 = etCantidad.text.toString().toDoubleOrNull()
+                val nvoValor2 = etPrecio.text.toString().toDoubleOrNull()
 
-                if (nuevaCantidad != null) refaccion.cant = nuevaCantidad
-                if (nuevoPrecio != null) refaccion.costuni = nuevoPrecio
+                if (esManoObra) {
+                    if (nvoValor1 != null) {
+                        refaccion.horas = nvoValor1
+                        refaccion.minutos = nvoValor1 * 60.0 // Recalcular minutos automáticamente
+                    }
+                } else {
+                    if (nvoValor1 != null) refaccion.cant = nvoValor1
+                    if (nvoValor2 != null) refaccion.costuni = nvoValor2
+                    // Recalcular importe para refacciones
+                    if (refaccion.cant != null && refaccion.costuni != null) {
+                        refaccion.importe = refaccion.cant!! * refaccion.costuni!!
+                    }
+                }
 
                 notifyItemChanged(position + 1)
             }

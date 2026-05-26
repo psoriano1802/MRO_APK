@@ -343,7 +343,7 @@ class SolicitaRefaccionActivity : AppCompatActivity() {
                             if (refItems.isNotEmpty()){
                                 val lista = mutableListOf<ProductoUI>()
                                 for (item in refItems){
-                                    val paqRef = ProductoUI(item.cver,item.cant!!.toDouble(),item.uni,item.price!!.toDouble(),item.price!!.toDouble(),item.namer,0.0,0.0)
+                                    val paqRef = ProductoUI(item.cver,item.cant!!.toDouble(),item.uni,item.price!!.toDouble(),item.price!!.toDouble(),item.namer)
                                     lista.add(paqRef)
                                 }
                                 articuloAdapter.agregarLista(lista)
@@ -411,9 +411,20 @@ class SolicitaRefaccionActivity : AppCompatActivity() {
                 val lista = mutableListOf<itemsDoc>()
                 for (item in Listitems){
                     //llenamos la lista de items
-                    val itemDoc = itemsDoc(item.cve!!,item.cant!!.toString(),item.descripcion!!,item.uni!!,item.costuni!!.toString(),"","",item.importe!!.toString(),tv_orden_mantenimiento.text.toString(),null)
+                    val itemDoc = itemsDoc(
+                        item.cve ?: "",
+                        (item.cant ?: 0.0).toString(),
+                        item.descripcion ?: "",
+                        item.uni ?: "",
+                        (item.costuni ?: 0.0).toString(),
+                        "",
+                        "",
+                        (item.importe ?: 0.0).toString(),
+                        tv_orden_mantenimiento.text.toString(),
+                        null
+                    )
                     lista.add(itemDoc)
-                    importe += item.importe!!
+                    importe += item.importe ?: 0.0
                 }
                 val request = AltaDoctosRequest(login,sucursalDoc.toString(),almacenDoc.toString(),"U","D","54","1",etFecha.text.toString(),tvMoneda.text.toString(),"1",tv_orden_mantenimiento.text.toString(),etComentarios.text.toString(),null,null,
                     null,null,null,null,null,null,null,tv_solicita.text.toString(),importe.toString(),tvFechaEntrega.text.toString(),tvHoraEntrega.text.toString(),importe.toString(),tv_orden_mantenimiento.text.toString(),tvCentroCosto.text.toString(),lista)

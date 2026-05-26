@@ -5,9 +5,7 @@ data class ProductoUI(
     val uni: String? = null,
     var costuni: Double? = null,
     var importe: Double? = null,
-    val descripcion: String? = null,
-    val minutos: Double? = null,
-    val horas: Double? = null,
-
+    var descripcion: String? = null,
+    var minutos: Double? = null,
+    var horas: Double? = null
 )
-

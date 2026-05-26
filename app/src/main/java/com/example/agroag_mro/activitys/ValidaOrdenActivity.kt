@@ -193,6 +193,7 @@ class ValidaOrdenActivity : AppCompatActivity() {
                                         Toast.LENGTH_SHORT
                                     ).show()
 
+                                    limpiarFormulario()
                                 }else{
                                     Toast.makeText(
                                         this@ValidaOrdenActivity,
@@ -215,5 +216,12 @@ class ValidaOrdenActivity : AppCompatActivity() {
             .show()
 
 
+    }
+    //funcion para limpiar el formulario
+    private fun limpiarFormulario() {
+        tvActivo.text = ""
+        etDescripcionActivo.text = ""
+        //limpiaremos el recyclerview
+        documentosAdapter.limpiarLista()
     }
 }

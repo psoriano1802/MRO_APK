@@ -61,10 +61,12 @@ class BusquedaRMBottomSheet(
         if(tipobusqueda =="1"){
             binding.etPrecio.isEnabled = true
             binding.etCantidad.isEnabled = true
+            binding.tvPrecio.text = "Precio"
         }else{
             //binding.etPrecio.isEnabled = false // para captura del precio(refacciones) o minutos (mano de obra)
             binding.etCantidad.isVisible = false//para captura de la cantidad(refacciones) o horas (mano de obra)
             binding.tvCantidad.isVisible = false
+            binding.tvPrecio.text = "Tiempo"
         }
         binding.btnBuscar.setOnClickListener {
             val texto = binding.etBusqueda.text.toString()

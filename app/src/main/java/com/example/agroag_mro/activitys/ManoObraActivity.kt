@@ -282,10 +282,19 @@ class ManoObraActivity: AppCompatActivity() {
     //funcion para reallizar la busqueda de refacciones
     private fun mostrarDialogBusqueda() {
         val bottomSheet = BusquedaRMBottomSheet("2") { res ->
-            var impo = res.costuni
             val hr = res.horas
             val min = hr?.times(60)
-            val refaccion = ProductoUI(res.cve, null, res.uni,null,null,res.descripcion , min,hr)
+            // Inicializamos con 0.0 en lugar de null para evitar NPE en enviaSolicitud
+            val refaccion = ProductoUI(
+                res.cve,
+                0.0,
+                res.uni,
+                0.0,
+                hr ?: 0.0,
+                res.descripcion,
+                min,
+                hr
+            )
 
             System.out.println("refaccionMO:"+refaccion)
             dialogBuscarTecnico(refaccion)
@@ -357,16 +366,31 @@ class ManoObraActivity: AppCompatActivity() {
 
                 //tomamos los items del recyclerview para enviarlos
                 val Listitems = articuloAdapter.obtenerLista()
+            //imprimimos el listado
+                println("listado final"+Listitems)
                 val lista = mutableListOf<itemsDoc>()
                 for (item in Listitems){
                     //llenamos la lista de items
-                    val itemDoc = itemsDoc(item.cve!!,item.cant!!.toString(),item.importe!!.toString(),item.uni!!,item.costuni!!.toString(),tv_orden_mantenimiento.text.toString(),item.descripcion!!,"",null)
+                    val itemDoc = itemsDoc(
+                        item.cve ?: "",
+                        (item.minutos ?: 0.0).toString(),
+                        (item.descripcion ?: 0.0).toString(),
+                        item.uni ?: "",
+                        (item.horas ?: 0.0).toString(),
+                        tv_orden_mantenimiento.text.toString(),
+                        item.descripcion ?: "",
+                        "",
+                        null
+                    )
                     println("itemdoc:"+itemDoc)
                     lista.add(itemDoc)
-                    importe += item.cant!!
+                    importe += item.cant ?: 0.0
                 }
 
-                when(val result = Globales.sendDocto(sucursalID.toString(),almacenDoc.toString(),"U","D","52","2",fec,mon,"1",orde,comen,"",importe.toString(),fe,te,importe.toString(),orde,depto,lista)){
+                val sucId = sucursalID ?: ""
+                val almDoc = almacenDoc ?: ""
+
+                when(val result = Globales.sendDocto(sucId, almDoc, "U", "D", "52", "2", fec, mon, "1", orde, comen, "", importe.toString(), fe, te, importe.toString(), orde, depto, lista)){
                     is Result.Success ->{
                         val alta = result.data
                         println("alta:"+alta)
@@ -405,5 +429,6 @@ class ManoObraActivity: AppCompatActivity() {
         //actualiza fecha y hora}
         fecha()
         //limpiar lista
+        articuloAdapter.limpiarLista()
     }
 }

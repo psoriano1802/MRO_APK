@@ -225,6 +225,8 @@ class ReporteFallaActivity: AppCompatActivity() {
 
 
         btnGuardar.setOnClickListener {
+            //bloqueamos el boton para que evite enviar mas de una peticion
+            btnGuardar.isEnabled = false
             guardarReporte()
         }
 
@@ -381,6 +383,7 @@ class ReporteFallaActivity: AppCompatActivity() {
                         if (okItem?.ok == "1") {
                             //showToast("Reporte enviado exitosamente")
                            mensajeExitoso(folio,fecha,activo,nombreActivo,dbUser?.nombre.toString(),"Reportada",falla,tipomnto.descripcion,tipoTrabajo.descripcion,detalleFalla,observaciones)
+
                         }
                     }
                 }else{
@@ -390,6 +393,8 @@ class ReporteFallaActivity: AppCompatActivity() {
             }catch (e: Exception){
                 System.out.println("error:"+e)
                 showToast("Error al conectar con el servidor")
+            } finally {
+                btnGuardar.isEnabled = true
             }
 
         }
@@ -524,6 +529,7 @@ class ReporteFallaActivity: AppCompatActivity() {
         etDetalleFalla.text.clear()
         etObservaciones.text.clear()
         checkImage.isChecked = false
+        imagenesBase64.clear() // Limpiamos la lista para que no se envíen fotos en el siguiente reporte
     }
 
     //funcion para mostrar un mensaje toast

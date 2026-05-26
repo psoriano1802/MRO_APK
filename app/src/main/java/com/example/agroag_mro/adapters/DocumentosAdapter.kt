@@ -140,4 +140,12 @@ class DocumentosAdapter(
             scrollViews.remove(it)
         }
     }
+
+    //limpiarmos el recyclerview
+    // ✅ Limpiar lista
+    fun limpiarLista() {
+        val size = lista.size
+        lista.clear()
+        notifyItemRangeRemoved(1, size)
+    }
 }
