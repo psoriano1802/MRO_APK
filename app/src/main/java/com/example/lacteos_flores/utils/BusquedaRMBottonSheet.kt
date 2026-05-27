@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 
 class BusquedaRMBottomSheet(
     private val tipobusqueda: String,
+    private val esDevolucion: Boolean = false, // Nuevo parámetro para omitir validación de stock
     private val onItemSelected: (ProductoUI) -> Unit // Callback al seleccionar un resultado
 ) : BottomSheetDialogFragment() {
 
@@ -73,7 +74,15 @@ class BusquedaRMBottomSheet(
                     Toast.makeText(requireContext(), mensaje, Toast.LENGTH_SHORT).show()
                 } else {
                     ultimaSeleccion = producto.copy(cant = 0.0)
-                    Toast.makeText(requireContext(), "Producto sin existencias en inventario local", Toast.LENGTH_LONG).show()
+                    if (!esDevolucion) {
+                        Toast.makeText(requireContext(), "Producto sin existencias en inventario local", Toast.LENGTH_LONG).show()
+                    } else {
+                        binding.btnAgregar.isEnabled = true
+                        binding.etCantidad.requestFocus()
+                        if(tipobusqueda == "1"){
+                            binding.etPrecio.setText(producto.costuni?.toString() ?: "0.0")
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("BusquedaRM", "Error calculando stock FIFO", e)
@@ -127,7 +136,7 @@ class BusquedaRMBottomSheet(
                 return@setOnClickListener
             }
 
-            if (cantidadIngresada > stockDisponible) {
+            if (!esDevolucion && cantidadIngresada > stockDisponible) {
                 Toast.makeText(requireContext(), "Cantidad ingresada ($cantidadIngresada) mayor a la disponible ($stockDisponible)", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }

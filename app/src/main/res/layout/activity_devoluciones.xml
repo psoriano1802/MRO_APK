@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@android:color/white">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/tvAlmacen"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="Almacen Devoluciones"
+            android:padding="1dp"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            android:textStyle="bold"
+            android:textAlignment="center"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            />
+
+        <TextView
+            android:id="@+id/tvFecha"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="8dp"
+            android:gravity="center_vertical"
+            android:hint="FECHA"
+            android:padding="10dp"
+            android:background="@drawable/custom_input_background"
+            android:textColor="@android:color/black"
+            app:layout_constraintTop_toBottomOf="@id/tvAlmacen"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/spinnerTipoDoc"
+            app:layout_constraintHorizontal_weight="1" />
+
+        <Spinner
+            android:id="@+id/spinnerTipoDoc"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:background="@drawable/custom_input_background"
+            app:layout_constraintTop_toTopOf="@id/tvFecha"
+            app:layout_constraintBottom_toBottomOf="@id/tvFecha"
+            app:layout_constraintStart_toEndOf="@id/tvFecha"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_weight="1" />
+        <View
+            android:id="@+id/divider1"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginTop="12dp"
+            android:background="#CCCCCC"
+            app:layout_constraintTop_toBottomOf="@id/spinnerTipoDoc" />
+
+        <EditText
+            android:id="@+id/etCodigoCliente"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="CLIENTE"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            android:padding="10dp"
+            android:visibility="gone"
+            android:background="@drawable/custom_input_background"
+            app:layout_constraintTop_toBottomOf="@id/divider1"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/tvNombreCliente"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="NOMBRE"
+            android:padding="10dp"
+            android:minHeight="48dp"
+            android:gravity="center_vertical"
+            android:textColor="@android:color/black"
+            android:visibility="gone"
+            android:background="@drawable/custom_input_background"
+            app:layout_constraintTop_toBottomOf="@id/etCodigoCliente" />
+
+        <View
+            android:id="@+id/divider2"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginTop="12dp"
+            android:background="#CCCCCC"
+            app:layout_constraintTop_toBottomOf="@id/tvNombreCliente" />
+
+        <EditText
+            android:id="@+id/etProducto"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/custom_input_background"
+            android:clickable="false"
+            android:cursorVisible="false"
+            android:focusable="false"
+            android:hint="PRODUCTO"
+            android:padding="10dp"
+            android:visibility="invisible"
+            app:layout_constraintEnd_toStartOf="@+id/btnBuscarProducto"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/divider2" />
+
+        <Button
+            android:id="@+id/btnBuscarProducto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="BUSCAR"
+            app:layout_constraintTop_toTopOf="@id/etProducto"
+            app:layout_constraintBottom_toBottomOf="@id/etProducto"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvProductos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/custom_input_background"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/etProducto" />
+
+        <EditText
+            android:id="@+id/etSubTotal"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="0.00"
+            android:background="@drawable/custom_input_background"
+            android:padding="8dp"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/rvProductos"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <EditText
+            android:id="@+id/etIva"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:hint="0.00"
+            android:background="@drawable/custom_input_background"
+            android:padding="8dp"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/etSubTotal"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <EditText
+            android:id="@+id/etTotal"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:hint="0.00"
+            android:background="@drawable/custom_input_background"
+            android:padding="8dp"
+            android:focusable="false"
+            android:cursorVisible="false"
+            android:clickable="false"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/etIva"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <Button
+            android:id="@+id/btnAceptar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="16dp"
+            android:text="REGISTRAR DEVOLUCIÓN"
+            app:layout_constraintTop_toBottomOf="@id/etTotal"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

@@ -28,8 +28,8 @@ class MainActivity : AppCompatActivity() {
         MenuOptions("Jornada", R.drawable.ic_inventory,"JORNADA", JornadaActivity::class.java), //registra el inicio de labores y cargalos datos iniciales, catlogos y si hay cargas iniciales
         MenuOptions("Ventas", R.drawable.ic_orders,"VENTAS", VentasActivity::class.java), //registra el fin de laboresy termina el dia, no permite abrir dia hasta el dia siguiente
         MenuOptions("Cobranza", R.drawable.ic_reports,"CXC", CobrosActivity::class.java), //actualiza los datos catalogos, recargas
-        MenuOptions("Devolucion", R.drawable.ic_settings,"DEV", VentasActivity::class.java) ,//
-        MenuOptions("Descarga",R.drawable.ic_inventory,"DES", VentasActivity::class.java),
+        MenuOptions("Devolucion", R.drawable.ic_settings,"DEV", DevolucionesActivity::class.java) ,//
+        MenuOptions("Descarga",R.drawable.ic_inventory,"DES", DescargasActivity::class.java),
         MenuOptions("Gastos",R.drawable.ic_orders,"GAS", GastosActivity::class.java)
     )
 

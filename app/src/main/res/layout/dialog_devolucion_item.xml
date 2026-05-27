@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/tv_producto_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Producto"
+        android:textStyle="bold"
+        android:layout_marginBottom="10dp"/>
+
+    <EditText
+        android:id="@+id/et_cantidad_dev"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Cantidad"
+        android:inputType="numberDecimal" />
+
+    <EditText
+        android:id="@+id/et_lote_dev"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Lote / Auxiliar"
+        android:inputType="text"
+        android:layout_marginTop="10dp"/>
+
+    <EditText
+        android:id="@+id/et_precio_dev"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Precio Unitario"
+        android:inputType="numberDecimal"
+        android:layout_marginTop="10dp"/>
+</LinearLayout>

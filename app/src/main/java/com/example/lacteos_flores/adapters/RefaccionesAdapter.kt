@@ -95,6 +95,13 @@ class RefaccionesAdapter (
         onItemChanged()
     }
 
+    fun actualizarLista(nuevaLista: MutableList<ProductoUI>) {
+        refacciones.clear()
+        refacciones.addAll(nuevaLista)
+        notifyDataSetChanged()
+        onItemChanged()
+    }
+
     fun eliminarItem(adapterPos: Int) {
         val listPos = adapterPos - 1
         if (listPos in refacciones.indices) {

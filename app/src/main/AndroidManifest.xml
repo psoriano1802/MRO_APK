@@ -41,6 +41,8 @@
         <activity android:name=".activitys.JornadaActivity" />
         <activity android:name=".activitys.GastosActivity" />
         <activity android:name=".activitys.CobrosActivity" />
+        <activity android:name=".activitys.DevolucionesActivity" />
+        <activity android:name=".activitys.DescargasActivity" />
         <activity
             android:name=".activitys.LoginActivity"
             android:exported="true">

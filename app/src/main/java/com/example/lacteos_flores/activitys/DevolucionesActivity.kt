@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -30,6 +31,7 @@ import com.example.lacteos_flores.adapters.RefaccionesAdapter
 import com.example.lacteos_flores.data.AppDatabase
 import com.example.lacteos_flores.data.ClientsEntity
 import com.example.lacteos_flores.data.DoctosEntity
+import com.example.lacteos_flores.data.ExistenciaEntity
 import com.example.lacteos_flores.data.ItemAuxEntity
 import com.example.lacteos_flores.data.Kdm1Entity
 import com.example.lacteos_flores.data.Kdm2Entity
@@ -54,7 +56,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.toString
 
-class VentasActivity : AppCompatActivity() {
+class DevolucionesActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var etAlmacen: TextView
     private lateinit var adapter: OrdenesAdapter
@@ -99,7 +101,7 @@ class VentasActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_ventas)
+        setContentView(R.layout.activity_devoluciones)
 
         relacionaView()
         Inicializa()
@@ -149,10 +151,10 @@ class VentasActivity : AppCompatActivity() {
 
     //funcion para confiurar los listeners de los botones
     private fun setupListeners() {
-        etCodigoCliente.setOnClickListener {
+        /*etCodigoCliente.setOnClickListener {
             // Aquí puedes implementar la lógica para guardar los datos
             buscarCliente()
-        }
+        }*/
         btnBuscarProducto.setOnClickListener {
             // Aquí puedes implementar la lógica para guardar los datos
             buscarProductos()
@@ -171,7 +173,7 @@ class VentasActivity : AppCompatActivity() {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.adapterPosition
                 
-                AlertDialog.Builder(this@VentasActivity)
+                AlertDialog.Builder(this@DevolucionesActivity)
                     .setTitle("Eliminar Producto")
                     .setMessage("¿Está seguro de que desea eliminar este producto de la lista?")
                     .setPositiveButton("Eliminar") { _, _ ->
@@ -197,98 +199,79 @@ class VentasActivity : AppCompatActivity() {
                 //cargamos el alamacen del usaurios en el edtAlamcen del layout
                 val alm = db.usuarioDao().obtenerUsuario(usuario.toString())
                 etAlmacen.setText(alm?.almacen)
-                //cargamos la moneda del usaurios en el edtMoneda del layout
-               // val mon = db.monedaDao().obtenerMonedas()
-                //de momento se dajara a pesos solo para la venta posterioemente para versiones futuras adaptarlo a un spinner para cargar los tipode de monedas
-               // etMoneda.setText(mon[0]?.moneda)
+                
                 //buscamos los documentos disponibles para ponerlo en el spinnerTipoDoc y mostrando las descripciones
                 val doctos = db.doctosDao().obtenerDocumentos()
                 //Filtramos por el tipo de documento a trabajar en la pantalla
-                filteredDoctos = doctos.filter { it.gen == "U" && it.nat == "D" && it.grp == "45"}
+                filteredDoctos = doctos.filter { it.gen == "U" && it.nat == "E" && it.grp == "25"}
+                if(filteredDoctos.isEmpty()){
+                    filteredDoctos = doctos.filter { it.gen == "U" } // Fallback
+                }
+                
                 val descripciones = filteredDoctos.map { it.descripcion }
 
-                val adapterDoctos = ArrayAdapter(this@VentasActivity, android.R.layout.simple_spinner_item, descripciones)
+                val adapterDoctos = ArrayAdapter(this@DevolucionesActivity, android.R.layout.simple_spinner_item, descripciones)
                 adapterDoctos.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                 spTipoDoc.adapter = adapterDoctos
 
-            }catch (e: Exception){
+            } catch (e: Exception){
                 println("error:"+e)
-                Toast.makeText(this@VentasActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@DevolucionesActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
     //funcion para buscar cliente abriendo el bottom sheet de clientes y haciendo la busqieda en la tabla clientes local
     private fun buscarCliente() {
-        //1.- Validar si el limite de credito o sus dias no esta exedido para permitir la venta
-        //2.- Validar el rfc
-        //  Si el cliente tiene rfc generico , sus ventas serian de remision para posteriormente hacer factura global,
-        //	Si el cliente tiene rfc registrado, sus ventas serian facturas ya sea de contado o de credito
-        //	si el cliente tiene rfc generico y a crédito, su venta seria factura a credito
-
-        val bottomSheetCliente = BusquedaTecBottonSheet{ cli ->
+        /*val bottomSheetCliente = BusquedaTecBottonSheet{ cli ->
             selectedClient = cli
             etNombreCliente.setText(cli.nombre)
             etCodigoCliente.setText(cli.clave)
-            val limcre = cli.limcre
-            //obtenemos los movimientos del cliente para validar el limite de credito y los dias de credito
-            lifecycleScope.launch {
-                try {
-                    val movim = db.kdm1Dao().obtenerMovimiento(cli.clave.toString()) ?: 0.0
-                    if (movim > limcre.toDouble()){
-                        Toast.makeText(this@VentasActivity, "El limite de credito se ha excedido", Toast.LENGTH_SHORT).show()
-                        //si el limite de credito se excede se deja la venta solo de contado
-
-                    }else{
-                        Toast.makeText(this@VentasActivity, "El limite de credito no se ha excedido", Toast.LENGTH_SHORT).show()
-                    }
-                    //validamos loz dias de vencimiento del cliente
-                    val dias = db.carteraDao().obtenerDocVence(cli.clave.toString())
-                    if (dias.isNotEmpty() ){
-                        Toast.makeText(this@VentasActivity, "El cliente tiene dias de vencimiento", Toast.LENGTH_SHORT).show()
-                        //si el cliente tiene dias de vencimiento se deja la venta solo de contado
-                        //dejamos el spinner de tipo documento fijo en contado
-                        spTipoDoc.setSelection(0)
-                        //bloqueadmos el selector de tipo de documento para que haga ventas a credito para el cliente
-                        spTipoDoc.isEnabled = false
-
-                    }else{
-                        Toast.makeText(this@VentasActivity, "El cliente no tiene dias de vencimiento", Toast.LENGTH_SHORT).show()
-                    }
-
-                    //consultaremos el estado de cuenta del cliente, filtrando los documentos que tengan los dias de vencimiento mayor a los dias permitidos
-
-
-                }catch (e: Exception){
-                    println("error:"+e)
-                    Toast.makeText(this@VentasActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-
-            }
-
-
-
         }
-        bottomSheetCliente.show(supportFragmentManager, "BusquedaTecBottomSheet")
-
-    }
-    //funcion que abrira un dialog con la informacion del cliente
-    private fun dialogInfoCliente(){
-
-    }
-    //funcion para validaciones de los clientes limite de credito y dias de credito
-    private fun validarCliente(){
-
+        bottomSheetCliente.show(supportFragmentManager, "BusquedaTecBottomSheet")*/
     }
 
     //funcion para reallizar la busqueda de productos
     private fun buscarProductos() {
-        val bottomSheet = BusquedaRMBottomSheet("1") { resultadoSeleccionado ->
-            val cant = resultadoSeleccionado.cant ?: 0.0
-            val impo = (resultadoSeleccionado.costuni ?: 0.0) * cant
-            val refaccion = ProductoUI(resultadoSeleccionado.cve, cant, resultadoSeleccionado.uni, resultadoSeleccionado.costuni, impo, resultadoSeleccionado.descripcion)
+        val bottomSheet = BusquedaRMBottomSheet("1", esDevolucion = true) { resultadoSeleccionado ->
+            val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_devolucion_item, null)
+            val tvInfo: TextView = dialogView.findViewById(R.id.tv_producto_info)
+            val etCant: EditText = dialogView.findViewById(R.id.et_cantidad_dev)
+            val etLote: EditText = dialogView.findViewById(R.id.et_lote_dev)
+            val etPrecio: EditText = dialogView.findViewById(R.id.et_precio_dev)
 
-            hproductsAdapter.agregarItem(refaccion)
-            calcularTotales()
+            tvInfo.text = "${resultadoSeleccionado.cve} - ${resultadoSeleccionado.descripcion}"
+            etCant.setText(resultadoSeleccionado.cant?.toString() ?: "1.0")
+            etPrecio.setText(resultadoSeleccionado.costuni?.toString() ?: "0.0")
+
+            AlertDialog.Builder(this)
+                .setTitle("Datos de Devolución")
+                .setView(dialogView)
+                .setPositiveButton("Agregar") { _, _ ->
+                    val cant = etCant.text.toString().toDoubleOrNull() ?: 0.0
+                    val lote = etLote.text.toString()
+                    val precio = etPrecio.text.toString().toDoubleOrNull() ?: 0.0
+                    
+                    if (lote.isEmpty()) {
+                        Toast.makeText(this, "El lote es requerido", Toast.LENGTH_SHORT).show()
+                        return@setPositiveButton
+                    }
+
+                    val impo = precio * cant
+                    val refaccion = ProductoUI(
+                        resultadoSeleccionado.cve, 
+                        cant, 
+                        resultadoSeleccionado.uni, 
+                        precio, 
+                        impo, 
+                        resultadoSeleccionado.descripcion,
+                        lote = lote
+                    )
+
+                    hproductsAdapter.agregarItem(refaccion)
+                    calcularTotales()
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
         }
         bottomSheet.show(supportFragmentManager, "BusquedaRMBottomSheet")
     }
@@ -326,27 +309,14 @@ class VentasActivity : AppCompatActivity() {
     }
 
     private fun GuardadDocumentosLocal() {
-        // Primero verificamos permisos antes de proceder con el guardado si queremos imprimir
         if (!tienePermisosBluetooth()) {
             solicitarPermisosBluetooth()
             return
         }
 
-        val cliente = etCodigoCliente.text.toString()
         val listaPartidas = hproductsAdapter.obtenerLista()
-        val subtotalValue = etSubTotal.text.toString().toDoubleOrNull() ?: 0.0
-
-        // Validaciones
-        if (cliente.isEmpty()) {
-            Toast.makeText(this, "Debe seleccionar un cliente", Toast.LENGTH_SHORT).show()
-            return
-        }
         if (listaPartidas.isEmpty()) {
             Toast.makeText(this, "Debe agregar al menos un producto", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (subtotalValue <= 0) {
-            Toast.makeText(this, "El monto total debe ser mayor a 0", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -354,16 +324,18 @@ class VentasActivity : AppCompatActivity() {
             try {
                 val selectedDocPos = spTipoDoc.selectedItemPosition
                 if (selectedDocPos < 0 || filteredDoctos.isEmpty()) {
-                    Toast.makeText(this@VentasActivity, "Tipo de documento no válido", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@DevolucionesActivity, "Tipo de documento no válido", Toast.LENGTH_SHORT).show()
                     return@launch
                 }
+                
                 // 1. Obtener datos del usuario
                 val userKey = Globales.usuario ?: ""
-                val usuario = db.usuarioDao().obtenerUsuario(userKey)
-                if (usuario == null) {
-                    Globales.showToast(this@VentasActivity, "Error: Usuario no encontrado")
+                val usuarioEntity = db.usuarioDao().obtenerUsuario(userKey)
+                if (usuarioEntity == null) {
+                    Globales.showToast(this@DevolucionesActivity, "Error: Usuario no encontrado")
                     return@launch
                 }
+                
                 val docConfig = filteredDoctos[selectedDocPos]
                 val fecha = etFecha.text.toString()
                 val almacen = etAlmacen.text.toString()
@@ -371,22 +343,21 @@ class VentasActivity : AppCompatActivity() {
                 // Header (Kdm1)
                 val kdm1 = Kdm1Entity(
                     suc = "1",
-                    alm = usuario.cve_alma,
+                    alm = usuarioEntity.cve_alma,
                     gen = docConfig.gen,
                     nat = docConfig.nat,
                     grp = docConfig.grp,
                     tip = docConfig.tipo,
                     fecha = fecha,
-                    cliente = cliente,
+                    cliente = "", // No requerido según instrucciones de ocultar cliente
                     moneda = "PESOS",
                     pari = "1.0",
-                    rfc = selectedClient?.rfc ?: "",
+                    rfc = "",
                     venc = fecha,
-                    //tomamos el tipo de documento seleccionado
                     condi = spTipoDoc.selectedItem.toString(),
-                    agent = usuario.usuario ?: "",
-                    lati = selectedClient?.latitud ?: "0.0",
-                    long = selectedClient?.longitud ?: "0.0",
+                    agent = usuarioEntity.usuario,
+                    lati = "0.0",
+                    long = "0.0",
                     subtotal = etSubTotal.text.toString(),
                     iva = etIva.text.toString(),
                     monto = etTotal.text.toString(),
@@ -395,15 +366,15 @@ class VentasActivity : AppCompatActivity() {
 
                 val idDoc = db.kdm1Dao().insertaDocumento(kdm1)
 
-                // Partidas (Kdm2) e inventario
                 val partidas = mutableListOf<Kdm2Entity>()
                 val partidasAux = mutableListOf<ItemAuxEntity>()
 
                 listaPartidas.forEachIndexed { index, item ->
                     val partidaNum = (index + 1).toString()
-                    var cantidadRestante = item.cant ?: 0.0
+                    val cantidad = item.cant ?: 0.0
+                    val lote = item.lote ?: ""
 
-                    // 1. Crear Partida Kdm2 (Encabezado de la partida)
+                    // 1. Crear Partida Kdm2
                     partidas.add(Kdm2Entity(
                         iddoc = idDoc,
                         suc = "1",
@@ -414,55 +385,49 @@ class VentasActivity : AppCompatActivity() {
                         tip = docConfig.tipo,
                         partida = partidaNum,
                         producto = item.cve ?: "",
-                        cantidad = cantidadRestante.toString(),
+                        cantidad = cantidad.toString(),
                         descrip = item.descripcion ?: "",
                         unidad = item.uni ?: "",
                         precio = item.costuni.toString(),
-                        importe = ((item.cant ?: 0.0) * (item.costuni ?: 0.0)).toString(),
-                        iva = ((item.cant ?: 0.0) * (item.costuni ?: 0.0) * 0.16).toString()
+                        importe = item.importe.toString(),
+                        iva = (cantidad * (item.costuni ?: 0.0) * 0.16).toString()
                     ))
 
-                    // 2. Lógica FIFO para descontar de múltiples lotes si es necesario
-                    val lotesDisponibles = db.existenciasDao().obtenerLotesDisponibles(item.cve ?: "")
-                    
-                    for (loteEntity in lotesDisponibles) {
-                        if (cantidadRestante <= 0) break
+                    // 2. Registro en ItemAux para la entrada (lote)
+                    partidasAux.add(ItemAuxEntity(
+                        iddoc = idDoc,
+                        suc = "1",
+                        alm = almacen,
+                        gen = docConfig.gen,
+                        nat = docConfig.nat,
+                        grp = docConfig.grp,
+                        tip = docConfig.tipo,
+                        auxiliar = lote,
+                        partida = partidaNum,
+                        producto = item.cve ?: "",
+                        cantidad = cantidad.toString()
+                    ))
 
-                        val stockEnLote = loteEntity.existencias.toDoubleOrNull() ?: 0.0
-                        if (stockEnLote <= 0) continue
-
-                        val cantATomar = if (cantidadRestante <= stockEnLote) cantidadRestante else stockEnLote
-                        
-                        // Registro en ItemAux para este lote
-                        partidasAux.add(ItemAuxEntity(
-                            iddoc = idDoc,
-                            suc = "1",
-                            alm = almacen,
-                            gen = docConfig.gen,
-                            nat = docConfig.nat,
-                            grp = docConfig.grp,
-                            tip = docConfig.tipo,
-                            auxiliar = loteEntity.auxiliar,
-                            partida = partidaNum,
-                            producto = item.cve ?: "",
-                            cantidad = cantATomar.toString()
-                        ))
-
-                        // Actualización de Existencias en la base de datos local
-                        val nuevoStock = stockEnLote - cantATomar
+                    // 3. Actualización o creación de Existencias en la base de datos local
+                    val loteExistente = db.existenciasDao().obtenerLoteEspecifico(item.cve ?: "", lote)
+                    if (loteExistente != null) {
+                        val stockActual = loteExistente.existencias.toDoubleOrNull() ?: 0.0
+                        val nuevoStock = stockActual + cantidad
                         db.existenciasDao().actualizarExistencia(
                             item.cve ?: "",
-                            loteEntity.auxiliar,
+                            lote,
                             String.format(Locale.US, "%.2f", nuevoStock)
                         )
-
-                        cantidadRestante -= cantATomar
-                    }
-                    
-                    // Si después de recorrer lotes aún queda cantidadRestante, 
-                    // significa que se vendió más de lo que había en lotes (o no había lotes)
-                    if (cantidadRestante > 0) {
-                        Log.w("Ventas", "Atención: El producto ${item.cve} se vendió con saldo negativo en lotes por $cantidadRestante")
+                    } else {
+                        // Crear nuevo lote
+                        db.existenciasDao().insertarExistencias(listOf(
+                            ExistenciaEntity(
+                                clave = item.cve ?: "",
+                                auxiliar = lote,
+                                existencias = String.format(Locale.US, "%.2f", cantidad),
+                                fecha = fecha
+                            )
+                        ))
                     }
                 }
 
@@ -471,16 +436,12 @@ class VentasActivity : AppCompatActivity() {
                     db.itemAuxDao().insertaPartidasAux(partidasAux)
                 }
 
-                Toast.makeText(this@VentasActivity, "Documento guardado localmente", Toast.LENGTH_SHORT).show()
-                
-                // Imprimir ticket después de guardar
-                imprimirTicketVenta(kdm1, listaPartidas)
-
+                Toast.makeText(this@DevolucionesActivity, "Devolución guardada localmente", Toast.LENGTH_SHORT).show()
                 finish()
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(this@VentasActivity, "Error al guardar: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@DevolucionesActivity, "Error al guardar: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -503,67 +464,5 @@ class VentasActivity : AppCompatActivity() {
             arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_FINE_LOCATION)
         }
         requestBluetoothPermissionLauncher.launch(permissions)
-    }
-
-    private fun imprimirTicketVenta(header: Kdm1Entity, partidas: List<ProductoUI>) {
-        val printer = TicketPrinter(this)
-        // Actualizado con el nombre real de tu impresora: Printer001-664B
-            printer.connectAndPrint("Printer001") {
-            setAlignCenter()
-            setBold(true)
-            setLargeFont(false)
-            printText("PRODUCTOS LACTEOS FLORES\n")
-
-            setLargeFont(false)
-            setBold(false)
-            printText("R.F.C.: PLF010228TC3\n")
-            printText("Calle: NICOLAS BRAVO\n")
-            printText("Colonia: CENTRO\n")
-            printText("Municipio: JIQUILPAN\n")
-            printText("Telefono: 3535330998\n")
-            printText("\n")
-            printText("TICKET DE VENTA\n")
-            printText("Impresion:${etFecha.text}\n")
-            printDivider()
-
-            setAlignLeft()
-            printText("Forma de Venta: ${header.condi}\n")
-            printText("Cliente: ${header.cliente}\n")
-            printText("Nombre: ${etNombreCliente.text}\n")
-            printDivider()
-
-            // Formato de columnas para 32 caracteres (58mm)
-            // CLAVE(8) CANT(5) PRECIO(9) TOTAL(10)
-            val headerRow = String.format(Locale.US, "%-8s %-25s %-5s %-9s %-10s\n", "Clave","Producto" ,"Cant", "Precio", "Total")
-            printText(headerRow)
-            printDivider()
-
-            for (item in partidas) {
-                println("item${item.descripcion}")
-                val line = String.format(Locale.US, "%-8s %-25s  %-5.1f %-9.2f %-10.2f\n",
-                    item.cve?.take(8) ?: "",
-                    item.descripcion ?: "",
-                    item.cant ?: 0.0,
-                    item.costuni ?: 0.0,
-                    (item.cant ?: 0.0) * (item.costuni ?: 0.0)
-                )
-                printText(line)
-                // Descripción en la siguiente línea si existe
-                /*item.descripcion?.let {
-                    if (it.isNotEmpty()) printText("${it.take(32)}\n")
-                }*/
-            }
-            printDivider()
-
-            setAlignRight()
-            printText("Subtotal: $ ${header.subtotal}\n")
-            printText("Impuesto: $ ${header.iva}\n")
-            setBold(true)
-            printText("TOTAL: $ ${header.monto}\n")
-            setBold(false)
-
-            setAlignCenter()
-            printText("\n¡Gracias por su prefencia!\n")
-        }
     }
 }

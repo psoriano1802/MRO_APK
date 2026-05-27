@@ -16,6 +16,9 @@ interface ProductosDao {
     @Query("SELECT * FROM productos where descripcion like :text or clave like :text")
     suspend fun obtenerTodosProductos(text: String): List<ProductosEntity>
 
+    @Query("SELECT * FROM productos WHERE existencia > 0")
+    suspend fun obtenerProductosConExistencia(): List<ProductosEntity>
+
     @Query("DELETE FROM productos")
     suspend fun eliminarTodo()
 
