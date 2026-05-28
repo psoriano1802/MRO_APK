@@ -2,6 +2,7 @@ package com.example.agroag_mro.activitys
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
@@ -9,9 +10,10 @@ import com.example.agroag_mro.R
 import com.example.agroag_mro.adapters.MenuAdapter
 import com.example.agroag_mro.adapters.MenuOptions
 import com.example.agroag_mro.databinding.ActivityMainBinding
+import com.example.agroag_mro.utils.Globales
 import com.example.agroag_mro.utils.Prefs
 import com.example.agroag_mro.viewmodels.MenuViewModel
-import kotlin.jvm.java
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 
 class MainActivity : AppCompatActivity() {
@@ -48,6 +50,36 @@ class MainActivity : AppCompatActivity() {
             // Configurar el escuchador de clics en el adaptador
         }
 
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle("Cerrar Sesión")
+                    .setMessage("¿Desea salir y cerrar sesion ?")
+                    .setNegativeButton("No", null)
+                    .setPositiveButton("Sí") { _, _ ->
+                        logout()
+                    }
+                    .show()
+            }
+        })
+
+    }
+
+    private fun logout() {
+        // Guardamos el estado del servidor de pruebas antes de limpiar
+        val isTest = Globales.isTestServer
+        
+        // Limpiamos datos de sesión
+        Prefs(this).clear()
+        Globales.clear()
+        
+        // Restauramos el servidor de pruebas para que no se pierda la configuración
+        Globales.isTestServer = isTest
+        
+        val intent = Intent(this, LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 
 }

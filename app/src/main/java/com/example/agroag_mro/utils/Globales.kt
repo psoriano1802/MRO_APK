@@ -31,8 +31,13 @@ object Globales{
     private const val PREFS_NAME = "GlobalPrefs"
     private const val KEY_USUARIO = "usuario"
     private const val KEY_PASSWORD = "password"
-    //private const val KEY_SUCURSAL = "sucursal"
-    //private const val KEY_NOMBRE = "nombre"
+    private const val KEY_IS_TEST = "is_test_server"
+
+    const val URL_PROD ="http://144.217.255.240:8086/"  //"http://keplerqro.dnsalias.com:1970/" pruebas
+    const val URL_TEST = "http://144.217.255.240:8087/"
+
+    val url: String
+        get() = if (isTestServer) URL_TEST else URL_PROD
 
     private var database: AppDatabase? = null
 
@@ -65,6 +70,10 @@ object Globales{
     var password: String?
         get() = prefs.getString(KEY_PASSWORD, null)
         set(value) = prefs.edit().putString(KEY_PASSWORD, value).apply()
+
+    var isTestServer: Boolean
+        get() = prefs.getBoolean(KEY_IS_TEST, false)
+        set(value) = prefs.edit().putBoolean(KEY_IS_TEST, value).apply()
 
     //funciones
 

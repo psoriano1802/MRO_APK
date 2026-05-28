@@ -45,6 +45,15 @@ class LoginActivity : AppCompatActivity() {
 
         checkPermissions()
 
+        //agregaremos el switch para poder utilizar entre pruebas y productivo
+        binding.swUrlType.isChecked = Globales.isTestServer
+        binding.swUrlType.setOnCheckedChangeListener { _, isChecked ->
+            Globales.isTestServer = isChecked
+            RetrofitClient.updateBaseUrl()
+            val message = if (isChecked) "Servidor de Pruebas" else "Servidor de Producción"
+            Toast.makeText(this, "Cambiado a: $message", Toast.LENGTH_SHORT).show()
+        }
+        
         binding.btnIngresar.setOnClickListener {
             val user = binding.etUsuario.text.toString()
             val pass = binding.etPassword.text.toString()
