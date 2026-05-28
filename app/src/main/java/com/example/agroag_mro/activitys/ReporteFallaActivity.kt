@@ -45,6 +45,10 @@ import java.io.FileOutputStream
 import android.net.Uri
 import android.graphics.ImageDecoder
 import android.os.Build
+import androidx.activity.enableEdgeToEdge
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 class ReporteFallaActivity: AppCompatActivity() {
@@ -79,8 +83,20 @@ class ReporteFallaActivity: AppCompatActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_reporte_falla)
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.updatePadding(
+                left = systemBars.left,
+                top = systemBars.top,
+                right = systemBars.right,
+                bottom = systemBars.bottom
+            )
+            insets
+        }
 
         usuario = Prefs(this).obtenerUsuario().first.toString()
         pass = Prefs(this).obtenerUsuario().second.toString()
