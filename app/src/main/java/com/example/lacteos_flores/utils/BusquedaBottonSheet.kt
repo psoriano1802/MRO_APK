@@ -13,7 +13,7 @@ import com.example.lacteos_flores.databinding.DialogBusquedaBinding
 import com.example.lacteos_flores.interfaz.ApiService
 import com.example.lacteos_flores.interfaz.RetrofitClient
 import com.example.lacteos_flores.models.ubicacionRequest
-import com.example.lacteos_flores.models.itemsDoc
+import com.example.lacteos_flores.models.ItemsDoc
 import com.example.lacteos_flores.models.Login
 import com.example.lacteos_flores.models.LoginRequest
 import com.example.lacteos_flores.models.ProductosResponse
@@ -22,7 +22,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.launch
 
 class BusquedaBottomSheet(
-    private val onItemSelected: (itemsDoc) -> Unit // Callback al seleccionar un resultado
+    private val onItemSelected: (ItemsDoc) -> Unit // Callback al seleccionar un resultado
 ) : BottomSheetDialogFragment() {
 
     private lateinit var binding: DialogBusquedaBinding

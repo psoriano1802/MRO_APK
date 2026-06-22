@@ -6,18 +6,18 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.lacteos_flores.R
-import com.example.lacteos_flores.models.itemsDoc
+import com.example.lacteos_flores.models.ItemsDoc
 
 class ResultadoAdapter(
-    private val lista: List<itemsDoc>,
-    private val onClick: (itemsDoc) -> Unit
+    private val lista: List<ItemsDoc>,
+    private val onClick: (ItemsDoc) -> Unit
 ) : RecyclerView.Adapter<ResultadoAdapter.ViewHolder>() {
 
     inner class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         val nombre: TextView = view.findViewById(R.id.txtNombre)
         val descripcion: TextView = view.findViewById(R.id.txtDescripcion)
 
-        fun bind(resultado: itemsDoc) {
+        fun bind(resultado: ItemsDoc) {
             nombre.text = resultado.descri
             descripcion.text = resultado.kparte
             view.setOnClickListener { onClick(resultado) }

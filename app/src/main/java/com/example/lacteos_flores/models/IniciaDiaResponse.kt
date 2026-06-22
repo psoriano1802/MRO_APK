@@ -20,7 +20,7 @@ data class TerminaDiaResponse (
 data class TerDia (
     val ok: String? = null,
     @SerializedName("msn") val msn: String? = null,
-    @SerializedName("Fecha_Termina") val err: String? = null
+    @SerializedName("Fecha_Termina") val fechaTermina: String? = null
 )
 
 //valida response

@@ -16,6 +16,9 @@ interface ClientsDao {
     @Query("SELECT * FROM clientes where clave like '%' || :cve || '%' or nombre like '%' || :cve || '%'")
     suspend fun obtenerTodosClientes(cve: String): List<ClientsEntity>
 
+    @Query("UPDATE clientes SET limcre = :nuevoLimite WHERE clave = :cve")
+    suspend fun actualizarLimiteCredito(cve: String, nuevoLimite: String)
+
     @Query("DELETE FROM clientes")
     suspend fun eliminarTodo()
 

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -27,6 +28,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.lacteos_flores.R
 import com.example.lacteos_flores.adapters.OrdenesAdapter
 import com.example.lacteos_flores.adapters.RefaccionesAdapter
+import com.example.lacteos_flores.controllers.CatalogosManager
 import com.example.lacteos_flores.data.AppDatabase
 import com.example.lacteos_flores.data.ClientsEntity
 import com.example.lacteos_flores.data.DoctosEntity
@@ -36,6 +38,7 @@ import com.example.lacteos_flores.data.Kdm2Entity
 import com.example.lacteos_flores.data.PantallasEntity
 import com.example.lacteos_flores.data.ProductosEntity
 import com.example.lacteos_flores.data.UsuarioDao
+import com.example.lacteos_flores.data.ExistenciaEntity
 import com.example.lacteos_flores.interfaz.RetrofitClient
 import com.example.lacteos_flores.models.Login
 import com.example.lacteos_flores.models.LoginRequest
@@ -66,6 +69,7 @@ class DescargasActivity : AppCompatActivity() {
     private lateinit var btnBuscarProducto: Button
     private lateinit var btnCargarExistencias: Button
     private lateinit var btnGuardar: Button
+    private lateinit var btnFinalizarSync: Button
     private lateinit var etProducto: EditText
     private lateinit var spTipoDoc: Spinner
     private lateinit var spTipoRfc: Spinner
@@ -115,11 +119,17 @@ class DescargasActivity : AppCompatActivity() {
         btnBuscarProducto = findViewById(R.id.btnBuscarProducto)
         btnCargarExistencias = findViewById(R.id.btnCargarExistencias)
         btnGuardar = findViewById(R.id.btnAceptar)
+        btnFinalizarSync = findViewById(R.id.btnFinalizarSync)
         etProducto = findViewById(R.id.etProducto)
         spTipoDoc = findViewById(R.id.spinnerTipoDoc)
         etSubTotal = findViewById(R.id.etSubTotal)
         etIva = findViewById(R.id.etIva)
         etTotal = findViewById(R.id.etTotal)
+        
+        // Ocultar campos financieros de la UI principal
+        etSubTotal.visibility = View.GONE
+        etIva.visibility = View.GONE
+        etTotal.visibility = View.GONE
 
     }
 
@@ -131,19 +141,18 @@ class DescargasActivity : AppCompatActivity() {
         //inicializamos la base de datos
         db = AppDatabase.getDatabase(this)
         loginUserDao = db.usuarioDao()
-        //inicializamos el adapter con callback para recalcular totales automáticamente al editar/eliminar
-        hproductsAdapter = RefaccionesAdapter(mutableListOf(), listOf("Clave", "Cant", "Uni", "Precio", "Importe")) {
-            calcularTotales()
-        }
+        //inicializamos el adapter OCULTANDO PRECIOS
+        hproductsAdapter = RefaccionesAdapter(mutableListOf(), listOf("Clave", "Cant", "Uni"), false, {
+            // No necesitamos calcular totales monetarios aquí
+        }, null)
         recyclerView.adapter = hproductsAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
 
         etFecha.setText(fecAct)
-        //evento para abrir el fdate picker
-        etFecha.setOnClickListener {
-            showDatePicker(etFecha)
-        }
+        // Campo fecha no editable, solo muestra la actual
+        etFecha.setOnClickListener(null)
+        
         cargarInfoLocal()
 
 
@@ -163,7 +172,10 @@ class DescargasActivity : AppCompatActivity() {
         btnGuardar.setOnClickListener {
             GuardadDocumentosLocal()
         }
-        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0,
+        btnFinalizarSync.setOnClickListener {
+            mostrarDialogoFinalizar()
+        }
+       /* val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0,
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
             override fun onMove(
                 recyclerView: RecyclerView,
@@ -189,7 +201,7 @@ class DescargasActivity : AppCompatActivity() {
             }
         })
         itemTouchHelper.attachToRecyclerView(recyclerView)
-
+        */
 
     }
 
@@ -203,19 +215,29 @@ class DescargasActivity : AppCompatActivity() {
                 
                 //buscamos los documentos disponibles
                 val doctos = db.doctosDao().obtenerDocumentos()
-                //Filtramos por el tipo de documento a trabajar en la pantalla (Ajustar gen según reglas para Descargas)
-                filteredDoctos = doctos.filter { it.gen == "N" }
+                
+                // Filtrar específicamente por Entrada por Devolución UA101
+                filteredDoctos = doctos.filter { 
+                    (it.gen == "N" && it.nat == "D" && it.grp=="25" && it.tipo == "18") ||
+                    it.descripcion.uppercase().contains("ND2518") ||
+                    it.descripcion.uppercase().contains("Descarga")
+                }
+                
+                if (filteredDoctos.isEmpty()) {
+                    // Fallback
+                    filteredDoctos = doctos.filter { it.gen == "U" }
+                }
                 
                 val descripciones = filteredDoctos.map { it.descripcion }
 
                 val adapterDoctos = ArrayAdapter(this@DescargasActivity, android.R.layout.simple_spinner_item, descripciones)
                 adapterDoctos.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                 spTipoDoc.adapter = adapterDoctos
-
-                // Pre-seleccionar ND2518 si existe
-                val posND = filteredDoctos.indexOfFirst { it.nat == "D" && it.grp == "25" && it.tipo == "18" || it.descripcion.contains("Descarga") }
-                if (posND != -1) {
-                    spTipoDoc.setSelection(posND)
+                
+                // Bloquear el spinner para que quede fijo
+                if (filteredDoctos.isNotEmpty()) {
+                    spTipoDoc.setSelection(0)
+                    spTipoDoc.isEnabled = false
                 }
 
             }catch (e: Exception){
@@ -236,13 +258,9 @@ class DescargasActivity : AppCompatActivity() {
 
     //funcion para reallizar la busqueda de productos
     private fun buscarProductos() {
-        val bottomSheet = BusquedaRMBottomSheet("1") { resultadoSeleccionado ->
-            val cant = resultadoSeleccionado.cant ?: 0.0
-            val impo = (resultadoSeleccionado.costuni ?: 0.0) * cant
-            val refaccion = ProductoUI(resultadoSeleccionado.cve, cant, resultadoSeleccionado.uni, resultadoSeleccionado.costuni, impo, resultadoSeleccionado.descripcion)
-
-            hproductsAdapter.agregarItem(refaccion)
-            calcularTotales()
+        val yaAgregados = hproductsAdapter.obtenerLista()
+        val bottomSheet = BusquedaRMBottomSheet("1", false, yaAgregados) { resultadoSeleccionado ->
+            hproductsAdapter.agregarItem(resultadoSeleccionado)
         }
         bottomSheet.show(supportFragmentManager, "BusquedaRMBottomSheet")
     }
@@ -250,66 +268,31 @@ class DescargasActivity : AppCompatActivity() {
     private fun cargarTodasExistencias() {
         lifecycleScope.launch {
             try {
-                // Obtenemos los productos calculando su existencia real desde la tabla de existencias (lotes)
                 val productos = db.existenciasDao().obtenerProductosConStock()
                 
                 if (productos.isEmpty()) {
-                    Toast.makeText(this@DescargasActivity, "No hay productos con existencia en lotes", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@DescargasActivity, "No hay productos con existencias", Toast.LENGTH_SHORT).show()
                     return@launch
                 }
 
                 val productosUI = productos.map {
-                    val impo = it.existencia * (it.precio1.toDoubleOrNull() ?: 0.0)
                     ProductoUI(
                         it.clave,
                         it.existencia,
                         it.unidad,
-                        it.precio1.toDoubleOrNull() ?: 0.0,
-                        impo,
+                        0.0,
+                        0.0,
                         it.descripcion
                     )
                 }
 
                 hproductsAdapter.actualizarLista(productosUI.toMutableList())
-                calcularTotales()
-                Toast.makeText(this@DescargasActivity, "Se cargaron ${productos.size} productos desde existencias", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@DescargasActivity, "Se cargaron ${productos.size} productos con existencia", Toast.LENGTH_SHORT).show()
 
             } catch (e: Exception) {
                 Toast.makeText(this@DescargasActivity, "Error al cargar existencias: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
-    }
-
-    private fun showDatePicker(campoFecha: TextView) {
-        val calendario = Calendar.getInstance()
-
-        val datePicker = DatePickerDialog(
-            this,
-            { _, year, month, dayOfMonth ->
-                val fechaSeleccionada = "$year-${month + 1}-$dayOfMonth"
-                campoFecha.setText(fechaSeleccionada)
-            },
-            calendario.get(Calendar.YEAR),
-            calendario.get(Calendar.MONTH),
-            calendario.get(Calendar.DAY_OF_MONTH)
-        )
-        datePicker.show()
-    }
-
-    private fun calcularTotales() {
-        val lista = hproductsAdapter.obtenerLista()
-        var subtotal = 0.0
-        var totalIva = 0.0
-        for (item in lista) {
-            val importe = (item.cant ?: 0.0) * (item.costuni ?: 0.0)
-            subtotal += importe
-            totalIva += importe * 0.16 // IVA 16%
-        }
-        val total = subtotal + totalIva
-
-        etSubTotal.setText(String.format(Locale.US, "%.2f", subtotal))
-        etIva.setText(String.format(Locale.US, "%.2f", totalIva))
-        etTotal.setText(String.format(Locale.US, "%.2f", total))
     }
 
     private fun GuardadDocumentosLocal() {
@@ -320,20 +303,11 @@ class DescargasActivity : AppCompatActivity() {
 
         val cliente = etCodigoCliente.text.toString()
         val listaPartidas = hproductsAdapter.obtenerLista()
-        val subtotalValue = etSubTotal.text.toString().toDoubleOrNull() ?: 0.0
 
-        /*if (cliente.isEmpty()) {
-            Toast.makeText(this, "Debe seleccionar un cliente", Toast.LENGTH_SHORT).show()
-            return
-        }*/
         if (listaPartidas.isEmpty()) {
             Toast.makeText(this, "Debe agregar al menos un producto", Toast.LENGTH_SHORT).show()
             return
         }
-        /*if (subtotalValue <= 0) {
-            Toast.makeText(this, "El monto total debe ser mayor a 0", Toast.LENGTH_SHORT).show()
-            return
-        }*/
 
         lifecycleScope.launch {
             try {
@@ -342,20 +316,21 @@ class DescargasActivity : AppCompatActivity() {
                     Toast.makeText(this@DescargasActivity, "Tipo de documento no válido", Toast.LENGTH_SHORT).show()
                     return@launch
                 }
-                // 1. Obtener datos del usuario
+                
                 val userKey = Globales.usuario ?: ""
-                val usuario = db.usuarioDao().obtenerUsuario(userKey)
-                if (usuario == null) {
+                val usuarioEntity = db.usuarioDao().obtenerUsuario(userKey)
+                if (usuarioEntity == null) {
                     Globales.showToast(this@DescargasActivity, "Error: Usuario no encontrado")
                     return@launch
                 }
+                
                 val docConfig = filteredDoctos[selectedDocPos]
                 val fecha = etFecha.text.toString()
                 val almacen = etAlmacen.text.toString()
 
                 val kdm1 = Kdm1Entity(
-                    suc = "1",
-                    alm = usuario.cve_alma,
+                    suc = usuarioEntity.cve_suc,
+                    alm = usuarioEntity.cve_alma,
                     gen = docConfig.gen,
                     nat = docConfig.nat,
                     grp = docConfig.grp,
@@ -367,12 +342,12 @@ class DescargasActivity : AppCompatActivity() {
                     rfc = selectedClient?.rfc ?: "",
                     venc = fecha,
                     condi = spTipoDoc.selectedItem.toString(),
-                    agent = usuario.usuario ?: "",
+                    agent = usuarioEntity.usuario ?: "",
                     lati = selectedClient?.latitud ?: "0.0",
                     long = selectedClient?.longitud ?: "0.0",
-                    subtotal = etSubTotal.text.toString(),
-                    iva = etIva.text.toString(),
-                    monto = etTotal.text.toString(),
+                    subtotal = "0.00",
+                    iva = "0.00",
+                    monto = "0.00",
                     staSinc = "N"
                 )
 
@@ -388,7 +363,7 @@ class DescargasActivity : AppCompatActivity() {
                     // 1. Crear Partida Kdm2
                     partidas.add(Kdm2Entity(
                         iddoc = idDoc,
-                        suc = "1",
+                        suc = usuarioEntity.cve_suc,
                         alm = almacen,
                         gen = docConfig.gen,
                         nat = docConfig.nat,
@@ -399,9 +374,9 @@ class DescargasActivity : AppCompatActivity() {
                         cantidad = cantidadRestante.toString(),
                         descrip = item.descripcion ?: "",
                         unidad = item.uni ?: "",
-                        precio = item.costuni.toString(),
-                        importe = ((item.cant ?: 0.0) * (item.costuni ?: 0.0)).toString(),
-                        iva = ((item.cant ?: 0.0) * (item.costuni ?: 0.0) * 0.16).toString()
+                        precio = "0.00",
+                        importe = "0.00",
+                        iva = "0.00"
                     ))
 
                     // 2. Lógica FIFO para descontar de múltiples lotes
@@ -415,10 +390,11 @@ class DescargasActivity : AppCompatActivity() {
 
                         val cantATomar = if (cantidadRestante <= stockEnLote) cantidadRestante else stockEnLote
                         
+                        // Registro en ItemAux para este lote
                         partidasAux.add(ItemAuxEntity(
                             iddoc = idDoc,
-                            suc = "1",
-                            alm = almacen,
+                            suc = usuarioEntity.cve_suc,
+                            alm = usuarioEntity.cve_alma,
                             gen = docConfig.gen,
                             nat = docConfig.nat,
                             grp = docConfig.grp,
@@ -426,10 +402,13 @@ class DescargasActivity : AppCompatActivity() {
                             auxiliar = loteEntity.auxiliar,
                             partida = partidaNum,
                             producto = item.cve ?: "",
-                            cantidad = cantATomar.toString()
+                            cantidad = cantATomar.toString(),
+                            talla = loteEntity.talla,
+                            modelo = loteEntity.modelo,
+                            color = loteEntity.color
                         ))
 
-                        // Actualización de Existencias
+                        // Actualización de Existencias en la base de datos local
                         val nuevoStock = stockEnLote - cantATomar
                         db.existenciasDao().actualizarExistencia(
                             item.cve ?: "",
@@ -439,6 +418,10 @@ class DescargasActivity : AppCompatActivity() {
 
                         cantidadRestante -= cantATomar
                     }
+                    
+                    if (cantidadRestante > 0) {
+                        Log.w("Descargas", "Atención: El producto ${item.cve} se descargó con saldo negativo en lotes por $cantidadRestante")
+                    }
                 }
 
                 db.kdm2Dao().insertaPartidas(partidas)
@@ -447,6 +430,10 @@ class DescargasActivity : AppCompatActivity() {
                 }
 
                 Toast.makeText(this@DescargasActivity, "Descarga guardada localmente", Toast.LENGTH_SHORT).show()
+                
+                // Imprimir ticket de descarga
+                imprimirTicketDescarga(kdm1, listaPartidas)
+                mostrarDialogoFinalizar()
                 finish()
 
             } catch (e: Exception) {
@@ -474,5 +461,87 @@ class DescargasActivity : AppCompatActivity() {
             arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_FINE_LOCATION)
         }
         requestBluetoothPermissionLauncher.launch(permissions)
+    }
+
+    private fun imprimirTicketDescarga(header: Kdm1Entity, partidas: List<ProductoUI>) {
+        val printer = TicketPrinter(this)
+        printer.connectAndPrint("Printer001") {
+            setAlignCenter()
+            setBold(true)
+            printText("PRODUCTOS LACTEOS FLORES\n")
+            printText("TICKET DE DESCARGA\n")
+            setBold(false)
+            printText("Impresion: ${etFecha.text}\n")
+            printDivider()
+
+            setAlignLeft()
+            printText("Almacen: ${header.alm}\n")
+            printText("Tipo Doc: ${header.tip}\n")
+            printDivider()
+
+            // Header columnas
+            val headerRow = String.format(Locale.US, "%-8s %-15s %5s\n", "Clave", "Producto", "Cant")
+            printText(headerRow)
+            printDivider()
+
+            for (item in partidas) {
+                val line = String.format(Locale.US, "%-8s %-15s %5.1f\n",
+                    item.cve?.take(8) ?: "",
+                    item.descripcion?.take(15) ?: "",
+                    item.cant ?: 0.0
+                )
+                printText(line)
+            }
+            printDivider()
+
+            setAlignCenter()
+            printText("\n¡Descarga Finalizada!\n")
+        }
+    }
+
+    private fun mostrarDialogoFinalizar() {
+        AlertDialog.Builder(this)
+            .setTitle("Finalizar Jornada")
+            .setMessage("Esto enviará todos los movimientos pendientes y borrará la información local del día. ¿Desea continuar?")
+            .setPositiveButton("Sí, Finalizar") { _, _ ->
+                finalizarJornada()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun finalizarJornada() {
+        lifecycleScope.launch {
+            try {
+                val progressDialog = AlertDialog.Builder(this@DescargasActivity)
+                    .setTitle("Procesando")
+                    .setMessage("Sincronizando y limpiando datos...")
+                    .setCancelable(false)
+                    .show()
+
+                val manager = CatalogosManager(db)
+                val login = Login(usuario.toString(), pass.toString())
+                
+                val exito = manager.enviarTodoYLimpiar(login)
+
+                progressDialog.dismiss()
+
+                if (exito) {
+                    Prefs(this@DescargasActivity).setJornadaActiva(false)
+                    Toast.makeText(this@DescargasActivity, "Jornada Finalizada Exitosamente", Toast.LENGTH_LONG).show()
+                    
+                    // Redirigir al inicio o cerrar
+                    val intent = Intent(this@DescargasActivity, MainActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    finish()
+                } else {
+                    Toast.makeText(this@DescargasActivity, "Error al sincronizar. Verifique su conexión.", Toast.LENGTH_LONG).show()
+                }
+
+            } catch (e: Exception) {
+                Toast.makeText(this@DescargasActivity, "Error fatal: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 }

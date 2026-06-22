@@ -11,8 +11,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 @Database(
     entities = [UsuarioEntity::class,  DoctosEntity::class, ClientsEntity::class,
         BancoEntity::class, GastosEntity::class, MonedaEntity::class, ListaPreciosEntity::class,
-    ProductosEntity::class,ExistenciaEntity::class,Kdm1Entity::class,Kdm2Entity::class,ItemAuxEntity::class, CarteraEntity::class, Kdm2cxcEntity::class],
-    version = 14
+    ProductosEntity::class,ExistenciaEntity::class,Kdm1Entity::class,Kdm2Entity::class,ItemAuxEntity::class, CarteraEntity::class, Kdm2cxcEntity::class, GastoRegistradoEntity::class,
+    TallaAuxEntity::class, ModeloAuxEntity::class],
+    version = 19
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun usuarioDao(): UsuarioDao
@@ -29,6 +30,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun kdm2cxcDao(): Kdm2cxcDao
     abstract fun itemAuxDao(): ItemAuxDao
     abstract fun carteraDao(): CarteraDao
+    abstract fun gastoRegistradoDao(): GastoRegistradoDao
+    abstract fun tmcDao(): TmcDao
 
 
 

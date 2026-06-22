@@ -19,4 +19,34 @@
         android:hint="Precio Unitario"
         android:inputType="numberDecimal"
         android:layout_marginTop="10dp"/>
+
+    <EditText
+        android:id="@+id/et_talla_edit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Talla"
+        android:layout_marginTop="10dp"
+        android:visibility="gone"
+        android:focusable="false"
+        android:clickable="true"/>
+
+    <EditText
+        android:id="@+id/et_modelo_edit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Modelo"
+        android:layout_marginTop="10dp"
+        android:visibility="gone"
+        android:focusable="false"
+        android:clickable="true"/>
+
+    <EditText
+        android:id="@+id/et_color_edit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Color"
+        android:layout_marginTop="10dp"
+        android:visibility="gone"
+        android:focusable="false"
+        android:clickable="true"/>
 </LinearLayout>

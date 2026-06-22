@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.text.InputFilter
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.AdapterView
@@ -120,6 +121,11 @@ class DevolucionesActivity : AppCompatActivity() {
         etSubTotal = findViewById(R.id.etSubTotal)
         etIva = findViewById(R.id.etIva)
         etTotal = findViewById(R.id.etTotal)
+        
+        // Ocultar campos financieros
+        etSubTotal.visibility = View.GONE
+        etIva.visibility = View.GONE
+        etTotal.visibility = View.GONE
 
     }
 
@@ -131,19 +137,21 @@ class DevolucionesActivity : AppCompatActivity() {
         //inicializamos la base de datos
         db = AppDatabase.getDatabase(this)
         loginUserDao = db.usuarioDao()
-        //inicializamos el adapter con callback para recalcular totales automáticamente al editar/eliminar
-        hproductsAdapter = RefaccionesAdapter(mutableListOf(), listOf("Clave", "Cant", "Uni", "Precio", "Importe")) {
-            calcularTotales()
-        }
+        
+        //inicializamos el adapter OCULTANDO PRECIOS
+        hproductsAdapter = RefaccionesAdapter(mutableListOf(), listOf("Clave", "Cant", "Uni"), false, {
+            // No necesitamos calcular totales monetarios
+        }, { item, pos ->
+            mostrarDialogoEdicionTMC(item, pos)
+        })
         recyclerView.adapter = hproductsAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
 
         etFecha.setText(fecAct)
-        //evento para abrir el fdate picker
-        etFecha.setOnClickListener {
-            showDatePicker(etFecha)
-        }
+        // Campo fecha no editable, solo muestra la actual
+        etFecha.setOnClickListener(null)
+        
         cargarInfoLocal()
 
 
@@ -151,12 +159,7 @@ class DevolucionesActivity : AppCompatActivity() {
 
     //funcion para confiurar los listeners de los botones
     private fun setupListeners() {
-        /*etCodigoCliente.setOnClickListener {
-            // Aquí puedes implementar la lógica para guardar los datos
-            buscarCliente()
-        }*/
         btnBuscarProducto.setOnClickListener {
-            // Aquí puedes implementar la lógica para guardar los datos
             buscarProductos()
         }
         btnGuardar.setOnClickListener {
@@ -200,10 +203,16 @@ class DevolucionesActivity : AppCompatActivity() {
                 val alm = db.usuarioDao().obtenerUsuario(usuario.toString())
                 etAlmacen.setText(alm?.almacen)
                 
-                //buscamos los documentos disponibles para ponerlo en el spinnerTipoDoc y mostrando las descripciones
+                //buscamos los documentos disponibles
                 val doctos = db.doctosDao().obtenerDocumentos()
-                //Filtramos por el tipo de documento a trabajar en la pantalla
-                filteredDoctos = doctos.filter { it.gen == "U" && it.nat == "E" && it.grp == "25"}
+                
+                // Filtrar específicamente por Entrada por Devolución UA101
+                filteredDoctos = doctos.filter { 
+                    (it.gen == "U" && it.nat == "A" && it.grp=="10" &&it.tipo == "1") ||
+                    it.descripcion.uppercase().contains("UA101") ||
+                    it.descripcion.uppercase().contains("DEVOLUCION")
+                }
+                
                 if(filteredDoctos.isEmpty()){
                     filteredDoctos = doctos.filter { it.gen == "U" } // Fallback
                 }
@@ -213,6 +222,12 @@ class DevolucionesActivity : AppCompatActivity() {
                 val adapterDoctos = ArrayAdapter(this@DevolucionesActivity, android.R.layout.simple_spinner_item, descripciones)
                 adapterDoctos.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                 spTipoDoc.adapter = adapterDoctos
+                
+                // Bloquear el spinner para que quede fijo
+                if (filteredDoctos.isNotEmpty()) {
+                    spTipoDoc.setSelection(0)
+                    spTipoDoc.isEnabled = false
+                }
 
             } catch (e: Exception){
                 println("error:"+e)
@@ -220,92 +235,142 @@ class DevolucionesActivity : AppCompatActivity() {
             }
         }
     }
-    //funcion para buscar cliente abriendo el bottom sheet de clientes y haciendo la busqieda en la tabla clientes local
-    private fun buscarCliente() {
-        /*val bottomSheetCliente = BusquedaTecBottonSheet{ cli ->
-            selectedClient = cli
-            etNombreCliente.setText(cli.nombre)
-            etCodigoCliente.setText(cli.clave)
-        }
-        bottomSheetCliente.show(supportFragmentManager, "BusquedaTecBottomSheet")*/
-    }
 
     //funcion para reallizar la busqueda de productos
     private fun buscarProductos() {
-        val bottomSheet = BusquedaRMBottomSheet("1", esDevolucion = true) { resultadoSeleccionado ->
-            val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_devolucion_item, null)
-            val tvInfo: TextView = dialogView.findViewById(R.id.tv_producto_info)
-            val etCant: EditText = dialogView.findViewById(R.id.et_cantidad_dev)
-            val etLote: EditText = dialogView.findViewById(R.id.et_lote_dev)
-            val etPrecio: EditText = dialogView.findViewById(R.id.et_precio_dev)
+        // Usamos tipobusqueda "" y esDevolucion = true para permitir entrada sin validar stock previo
+        val bottomSheet = BusquedaRMBottomSheet("", esDevolucion = true, emptyList()) { seleccionado ->
+            
+            lifecycleScope.launch {
+                val productoBase = db.productosDao().obtenerProducto(seleccionado.cve ?: "")
+                
+                if (productoBase?.lotesf == "S" || productoBase?.lotesf == "F") {
+                    // Mostrar diálogo para capturar cantidad y lote si el producto REQUIERE lote
+                    val dialogView = LayoutInflater.from(this@DevolucionesActivity).inflate(R.layout.dialog_devolucion_item, null)
+                    val tvInfo: TextView = dialogView.findViewById(R.id.tv_producto_info)
+                    val etCant: EditText = dialogView.findViewById(R.id.et_cantidad_dev)
+                    val etLote: EditText = dialogView.findViewById(R.id.et_lote_dev)
+                    val etPrecio: EditText = dialogView.findViewById(R.id.et_precio_dev)
+                    val etTalla: EditText = dialogView.findViewById(R.id.et_talla_dev)
+                    val etModelo: EditText = dialogView.findViewById(R.id.et_modelo_dev)
+                    val etColor: EditText = dialogView.findViewById(R.id.et_color_dev)
 
-            tvInfo.text = "${resultadoSeleccionado.cve} - ${resultadoSeleccionado.descripcion}"
-            etCant.setText(resultadoSeleccionado.cant?.toString() ?: "1.0")
-            etPrecio.setText(resultadoSeleccionado.costuni?.toString() ?: "0.0")
+                    // Forzar MAYUSCULAS en el teclado y en el texto mientras se escribe
+                    etLote.filters = arrayOf(InputFilter.AllCaps())
+                    etTalla.filters = arrayOf(InputFilter.AllCaps())
+                    etModelo.filters = arrayOf(InputFilter.AllCaps())
+                    etColor.filters = arrayOf(InputFilter.AllCaps())
 
-            AlertDialog.Builder(this)
-                .setTitle("Datos de Devolución")
-                .setView(dialogView)
-                .setPositiveButton("Agregar") { _, _ ->
-                    val cant = etCant.text.toString().toDoubleOrNull() ?: 0.0
-                    val lote = etLote.text.toString()
-                    val precio = etPrecio.text.toString().toDoubleOrNull() ?: 0.0
-                    
-                    if (lote.isEmpty()) {
-                        Toast.makeText(this, "El lote es requerido", Toast.LENGTH_SHORT).show()
-                        return@setPositiveButton
+                    // Mostrar/Ocultar campos Talla, Modelo, Color basándose en el campo 'tmc' de la DB
+                    when (productoBase.tmc) {
+                        "1" -> {
+                            etTalla.visibility = View.VISIBLE
+                            etModelo.visibility = View.GONE
+                            etColor.visibility = View.GONE
+                            configurarSeleccionCatalogo(etTalla, seleccionado.cve ?: "", "TALLA")
+                        }
+                        "2" -> {
+                            etTalla.visibility = View.VISIBLE
+                            etModelo.visibility = View.VISIBLE
+                            etColor.visibility = View.GONE
+                            configurarSeleccionCatalogo(etTalla, seleccionado.cve ?: "", "TALLA")
+                            configurarSeleccionCatalogo(etModelo, seleccionado.cve ?: "", "MODELO")
+                        }
+                        "3" -> {
+                            etTalla.visibility = View.VISIBLE
+                            etModelo.visibility = View.VISIBLE
+                            etColor.visibility = View.VISIBLE
+                            configurarSeleccionCatalogo(etTalla, seleccionado.cve ?: "", "TALLA")
+                            configurarSeleccionCatalogo(etModelo, seleccionado.cve ?: "", "MODELO")
+                            configurarSeleccionCatalogo(etColor, seleccionado.cve ?: "", "COLOR")
+                        }
+                        else -> { // Caso "0" o cualquier otro
+                            etTalla.visibility = View.GONE
+                            etModelo.visibility = View.GONE
+                            etColor.visibility = View.GONE
+                        }
                     }
 
-                    val impo = precio * cant
-                    val refaccion = ProductoUI(
-                        resultadoSeleccionado.cve, 
-                        cant, 
-                        resultadoSeleccionado.uni, 
-                        precio, 
-                        impo, 
-                        resultadoSeleccionado.descripcion,
-                        lote = lote
-                    )
+                    // Ocultar precio
+                    etPrecio.visibility = View.GONE
 
+                    tvInfo.text = "${seleccionado.cve} - ${seleccionado.descripcion}"
+                    etCant.setText(seleccionado.cant?.toString() ?: "1.0")
+
+                    val dialog = AlertDialog.Builder(this@DevolucionesActivity)
+                        .setTitle("Datos de Devolución")
+                        .setView(dialogView)
+                        .setPositiveButton("Agregar", null) // Configuramos después para validar
+                        .setNegativeButton("Cancelar", null)
+                        .create()
+
+                    dialog.show()
+
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                        val cant = etCant.text.toString().toDoubleOrNull() ?: 0.0
+                        val loteText = etLote.text.toString().uppercase()
+                        val tallaText = etTalla.text.toString().uppercase()
+                        val modeloText = etModelo.text.toString().uppercase()
+                        val colorText = etColor.text.toString().uppercase()
+                        
+                        // Validaciones según TMC
+                        val tmc = productoBase.tmc
+                        if (tmc >= "1" && (tallaText.isEmpty() || tallaText == "-")) {
+                            Toast.makeText(this@DevolucionesActivity, "La Talla es obligatoria", Toast.LENGTH_SHORT).show()
+                            return@setOnClickListener
+                        }
+                        if (tmc >= "2" && (modeloText.isEmpty() || modeloText == "-")) {
+                            Toast.makeText(this@DevolucionesActivity, "El Modelo es obligatorio", Toast.LENGTH_SHORT).show()
+                            return@setOnClickListener
+                        }
+                        if (tmc >= "3" && (colorText.isEmpty() || colorText == "-")) {
+                            Toast.makeText(this@DevolucionesActivity, "El Color es obligatorio", Toast.LENGTH_SHORT).show()
+                            return@setOnClickListener
+                        }
+
+                        if (loteText.isEmpty()) {
+                            Toast.makeText(this@DevolucionesActivity, "El lote es obligatorio", Toast.LENGTH_SHORT).show()
+                            return@setOnClickListener
+                        }
+
+                        if (cant <= 0) {
+                            Toast.makeText(this@DevolucionesActivity, "La cantidad debe ser mayor a 0", Toast.LENGTH_SHORT).show()
+                            return@setOnClickListener
+                        }
+
+                        val refaccion = ProductoUI(
+                            seleccionado.cve, 
+                            cant, 
+                            seleccionado.uni, 
+                            0.0, 
+                            0.0, 
+                            seleccionado.descripcion,
+                            lote = loteText,
+                            talla = tallaText.ifEmpty { "-" },
+                            modelo = modeloText.ifEmpty { "-" },
+                            color = colorText.ifEmpty { "-" }
+                        )
+
+                        hproductsAdapter.agregarItem(refaccion)
+                        dialog.dismiss()
+                    }
+                } else {
+                    // Si NO requiere lote, lo agregamos directamente con la cantidad de la búsqueda
+                    val refaccion = ProductoUI(
+                        seleccionado.cve, 
+                        seleccionado.cant ?: 1.0, 
+                        seleccionado.uni, 
+                        0.0, 
+                        0.0, 
+                        seleccionado.descripcion,
+                        lote = "" // Sin lote
+                    )
                     hproductsAdapter.agregarItem(refaccion)
-                    calcularTotales()
+                    Toast.makeText(this@DevolucionesActivity, "Producto agregado", Toast.LENGTH_SHORT).show()
                 }
-                .setNegativeButton("Cancelar", null)
-                .show()
+            }
         }
         bottomSheet.show(supportFragmentManager, "BusquedaRMBottomSheet")
-    }
-
-    private fun showDatePicker(campoFecha: TextView) {
-        val calendario = Calendar.getInstance()
-
-        val datePicker = DatePickerDialog(
-            this,
-            { _, year, month, dayOfMonth ->
-                val fechaSeleccionada = "$year-${month + 1}-$dayOfMonth"
-                campoFecha.setText(fechaSeleccionada)
-            },
-            calendario.get(Calendar.YEAR),
-            calendario.get(Calendar.MONTH),
-            calendario.get(Calendar.DAY_OF_MONTH)
-        )
-        datePicker.show()
-    }
-
-    private fun calcularTotales() {
-        val lista = hproductsAdapter.obtenerLista()
-        var subtotal = 0.0
-        var totalIva = 0.0
-        for (item in lista) {
-            val importe = (item.cant ?: 0.0) * (item.costuni ?: 0.0)
-            subtotal += importe
-            totalIva += importe * 0.16 // IVA 16%
-        }
-        val total = subtotal + totalIva
-
-        etSubTotal.setText(String.format(Locale.US, "%.2f", subtotal))
-        etIva.setText(String.format(Locale.US, "%.2f", totalIva))
-        etTotal.setText(String.format(Locale.US, "%.2f", total))
     }
 
     private fun GuardadDocumentosLocal() {
@@ -342,14 +407,14 @@ class DevolucionesActivity : AppCompatActivity() {
 
                 // Header (Kdm1)
                 val kdm1 = Kdm1Entity(
-                    suc = "1",
+                    suc = usuarioEntity.cve_suc,
                     alm = usuarioEntity.cve_alma,
                     gen = docConfig.gen,
                     nat = docConfig.nat,
                     grp = docConfig.grp,
                     tip = docConfig.tipo,
                     fecha = fecha,
-                    cliente = "", // No requerido según instrucciones de ocultar cliente
+                    cliente = "", 
                     moneda = "PESOS",
                     pari = "1.0",
                     rfc = "",
@@ -358,9 +423,9 @@ class DevolucionesActivity : AppCompatActivity() {
                     agent = usuarioEntity.usuario,
                     lati = "0.0",
                     long = "0.0",
-                    subtotal = etSubTotal.text.toString(),
-                    iva = etIva.text.toString(),
-                    monto = etTotal.text.toString(),
+                    subtotal = "0.00",
+                    iva = "0.00",
+                    monto = "0.00",
                     staSinc = "N"
                 )
 
@@ -371,13 +436,12 @@ class DevolucionesActivity : AppCompatActivity() {
 
                 listaPartidas.forEachIndexed { index, item ->
                     val partidaNum = (index + 1).toString()
-                    val cantidad = item.cant ?: 0.0
-                    val lote = item.lote ?: ""
+                    val cantidadTotalPartida = item.cant ?: 0.0
 
-                    // 1. Crear Partida Kdm2
+                    // 1. Crear Partida Kdm2 (Encabezado de la partida con el total)
                     partidas.add(Kdm2Entity(
                         iddoc = idDoc,
-                        suc = "1",
+                        suc = usuarioEntity.cve_suc,
                         alm = almacen,
                         gen = docConfig.gen,
                         nat = docConfig.nat,
@@ -385,50 +449,53 @@ class DevolucionesActivity : AppCompatActivity() {
                         tip = docConfig.tipo,
                         partida = partidaNum,
                         producto = item.cve ?: "",
-                        cantidad = cantidad.toString(),
+                        cantidad = cantidadTotalPartida.toString(),
                         descrip = item.descripcion ?: "",
                         unidad = item.uni ?: "",
-                        precio = item.costuni.toString(),
-                        importe = item.importe.toString(),
-                        iva = (cantidad * (item.costuni ?: 0.0) * 0.16).toString()
+                        precio = "0.00",
+                        importe = "0.00",
+                        iva = "0.00"
                     ))
 
-                    // 2. Registro en ItemAux para la entrada (lote)
-                    partidasAux.add(ItemAuxEntity(
-                        iddoc = idDoc,
-                        suc = "1",
-                        alm = almacen,
-                        gen = docConfig.gen,
-                        nat = docConfig.nat,
-                        grp = docConfig.grp,
-                        tip = docConfig.tipo,
-                        auxiliar = lote,
-                        partida = partidaNum,
-                        producto = item.cve ?: "",
-                        cantidad = cantidad.toString()
-                    ))
-
-                    // 3. Actualización o creación de Existencias en la base de datos local
-                    val loteExistente = db.existenciasDao().obtenerLoteEspecifico(item.cve ?: "", lote)
-                    if (loteExistente != null) {
-                        val stockActual = loteExistente.existencias.toDoubleOrNull() ?: 0.0
-                        val nuevoStock = stockActual + cantidad
-                        db.existenciasDao().actualizarExistencia(
-                            item.cve ?: "",
-                            lote,
-                            String.format(Locale.US, "%.2f", nuevoStock)
-                        )
-                    } else {
-                        // Crear nuevo lote
-                        db.existenciasDao().insertarExistencias(listOf(
-                            ExistenciaEntity(
-                                clave = item.cve ?: "",
-                                auxiliar = lote,
-                                existencias = String.format(Locale.US, "%.2f", cantidad),
-                                fecha = fecha
-                            )
+                    // 2. Registro en ItemAux recorriendo el DESGLOSE DE LOTES
+                    if (item.desgloseLotes.isNotEmpty()) {
+                        item.desgloseLotes.forEach { detalle ->
+                            partidasAux.add(ItemAuxEntity(
+                                iddoc = idDoc,
+                                suc = usuarioEntity.cve_suc,
+                                alm = almacen,
+                                gen = docConfig.gen,
+                                nat = docConfig.nat,
+                                grp = docConfig.grp,
+                                tip = docConfig.tipo,
+                                auxiliar = detalle.lote,
+                                partida = partidaNum,
+                                producto = item.cve ?: "",
+                                cantidad = detalle.cantidad.toString(),
+                                talla = detalle.talla,
+                                modelo = detalle.modelo,
+                                color = detalle.color
+                            ))
+                        }
+                    } else if (!item.lote.isNullOrEmpty()) {
+                        // Fallback por si acaso no se llenó el desglose pero hay un lote principal
+                        partidasAux.add(ItemAuxEntity(
+                            iddoc = idDoc,
+                            suc = usuarioEntity.cve_suc,
+                            alm = almacen,
+                            gen = docConfig.gen,
+                            nat = docConfig.nat,
+                            grp = docConfig.grp,
+                            tip = docConfig.tipo,
+                            auxiliar = item.lote!!,
+                            partida = partidaNum,
+                            producto = item.cve ?: "",
+                            cantidad = cantidadTotalPartida.toString()
                         ))
                     }
+
+                    // 3. Omitimos la actualización de existencias locales para Devoluciones 
+                    // ya que el producto puede estar defectuoso y no debe considerarse para la venta.
                 }
 
                 db.kdm2Dao().insertaPartidas(partidas)
@@ -437,6 +504,10 @@ class DevolucionesActivity : AppCompatActivity() {
                 }
 
                 Toast.makeText(this@DevolucionesActivity, "Devolución guardada localmente", Toast.LENGTH_SHORT).show()
+                
+                // Imprimir ticket de devolución
+                imprimirTicketDevolucion(kdm1, listaPartidas)
+
                 finish()
 
             } catch (e: Exception) {
@@ -464,5 +535,179 @@ class DevolucionesActivity : AppCompatActivity() {
             arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_FINE_LOCATION)
         }
         requestBluetoothPermissionLauncher.launch(permissions)
+    }
+
+    private fun imprimirTicketDevolucion(header: Kdm1Entity, partidas: List<ProductoUI>) {
+        val printer = TicketPrinter(this)
+        printer.connectAndPrint("Printer001") {
+            setAlignCenter()
+            setBold(true)
+            printText("PRODUCTOS LACTEOS FLORES\n")
+            printText("TICKET DE DEVOLUCION\n")
+            setBold(false)
+            printText("Fecha: ${header.fecha}\n")
+            printDivider()
+
+            setAlignLeft()
+            printText("Almacen: ${header.alm}\n")
+            printText("Tipo Doc: ${header.tip}\n")
+            printDivider()
+
+            // Header columnas
+            val headerRow = String.format(Locale.US, "%-8s %-15s %5s\n", "Clave", "Producto", "Cant")
+            printText(headerRow)
+            printDivider()
+
+            for (item in partidas) {
+                val line = String.format(Locale.US, "%-8s %-15s %5.1f\n",
+                    item.cve?.take(8) ?: "",
+                    item.descripcion?.take(15) ?: "",
+                    item.cant ?: 0.0
+                )
+                printText(line)
+
+                // Imprimir atributos TMC si existen
+                val atributos = mutableListOf<String>()
+                if (item.talla != "-") atributos.add("T: ${item.talla}")
+                if (item.modelo != "-") atributos.add("M: ${item.modelo}")
+                if (item.color != "-") atributos.add("C: ${item.color}")
+                
+                if (atributos.isNotEmpty()) {
+                    printText("   ${atributos.joinToString(" ")}\n")
+                }
+                
+                if (!item.lote.isNullOrEmpty()) {
+                    printText("   Lote: ${item.lote}\n")
+                }
+            }
+            printDivider()
+
+            setAlignCenter()
+            printText("\n¡Devolución Procesada!\n")
+        }
+    }
+
+    private fun mostrarDialogoEdicionTMC(item: ProductoUI, position: Int) {
+        lifecycleScope.launch {
+            val productoBase = db.productosDao().obtenerProducto(item.cve ?: "") ?: return@launch
+            
+            val dialogView = LayoutInflater.from(this@DevolucionesActivity).inflate(R.layout.dialog_editar_item, null)
+            val etCant: EditText = dialogView.findViewById(R.id.et_cantidad_edit)
+            val etPrecio: EditText = dialogView.findViewById(R.id.et_precio_edit)
+            val etTalla: EditText = dialogView.findViewById(R.id.et_talla_edit)
+            val etModelo: EditText = dialogView.findViewById(R.id.et_modelo_edit)
+            val etColor: EditText = dialogView.findViewById(R.id.et_color_edit)
+
+            etPrecio.visibility = View.GONE // Devoluciones no muestran precio
+            etCant.setText(item.cant.toString())
+            etTalla.setText(item.talla)
+            etModelo.setText(item.modelo)
+            etColor.setText(item.color)
+
+            // Configurar visibilidad según el campo 'tmc' de la DB
+            when (productoBase.tmc) {
+                "1" -> {
+                    etTalla.visibility = View.VISIBLE
+                    configurarSeleccionCatalogo(etTalla, item.cve ?: "", "TALLA")
+                }
+                "2" -> {
+                    etTalla.visibility = View.VISIBLE
+                    etModelo.visibility = View.VISIBLE
+                    configurarSeleccionCatalogo(etTalla, item.cve ?: "", "TALLA")
+                    configurarSeleccionCatalogo(etModelo, item.cve ?: "", "MODELO")
+                }
+                "3" -> {
+                    etTalla.visibility = View.VISIBLE
+                    etModelo.visibility = View.VISIBLE
+                    etColor.visibility = View.VISIBLE
+                    configurarSeleccionCatalogo(etTalla, item.cve ?: "", "TALLA")
+                    configurarSeleccionCatalogo(etModelo, item.cve ?: "", "MODELO")
+                    configurarSeleccionCatalogo(etColor, item.cve ?: "", "COLOR")
+                }
+            }
+
+            val dialog = AlertDialog.Builder(this@DevolucionesActivity)
+                .setTitle("Editar Item")
+                .setView(dialogView)
+                .setPositiveButton("Guardar", null)
+                .setNegativeButton("Cancelar", null)
+                .create()
+
+            dialog.show()
+
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val nuevaCant = etCant.text.toString().toDoubleOrNull() ?: 0.0
+                val tallaText = etTalla.text.toString().uppercase()
+                val modeloText = etModelo.text.toString().uppercase()
+                val colorText = etColor.text.toString().uppercase()
+
+                // Validaciones TMC
+                val tmc = productoBase.tmc
+                if (tmc >= "1" && (tallaText.isEmpty() || tallaText == "-")) {
+                    Toast.makeText(this@DevolucionesActivity, "La Talla es obligatoria", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                if (tmc >= "2" && (modeloText.isEmpty() || modeloText == "-")) {
+                    Toast.makeText(this@DevolucionesActivity, "El Modelo es obligatorio", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                if (tmc >= "3" && (colorText.isEmpty() || colorText == "-")) {
+                    Toast.makeText(this@DevolucionesActivity, "El Color es obligatorio", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                if (nuevaCant <= 0) {
+                    Toast.makeText(this@DevolucionesActivity, "Cantidad inválida", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                // Actualizar item
+                item.cant = nuevaCant
+                item.talla = tallaText.ifEmpty { "-" }
+                item.modelo = modeloText.ifEmpty { "-" }
+                item.color = colorText.ifEmpty { "-" }
+                
+                // Si la devolución tenía desglose de lotes (consolidado), ajustamos proporcionalmente o lo que sea necesario
+                if (item.desgloseLotes.size == 1) {
+                    item.desgloseLotes[0].cantidad = nuevaCant
+                    item.desgloseLotes[0].talla = item.talla
+                    item.desgloseLotes[0].modelo = item.modelo
+                    item.desgloseLotes[0].color = item.color
+                }
+
+                hproductsAdapter.notifyItemChanged(position + 1)
+                dialog.dismiss()
+            }
+        }
+    }
+
+    private fun configurarSeleccionCatalogo(editText: EditText, claveProd: String, tipo: String) {
+        editText.isFocusable = false
+        editText.isClickable = true
+        editText.setOnClickListener {
+            lifecycleScope.launch {
+                val opciones = when (tipo) {
+                    "TALLA" -> db.existenciasDao().obtenerTallasPorProducto(claveProd)
+                    "MODELO" -> db.existenciasDao().obtenerModelosPorProducto(claveProd)
+                    "COLOR" -> db.existenciasDao().obtenerColoresPorProducto(claveProd)
+                    else -> emptyList()
+                }
+
+                if (opciones.isNotEmpty()) {
+                    val arrayOpciones = opciones.toTypedArray()
+                    AlertDialog.Builder(this@DevolucionesActivity)
+                        .setTitle("Seleccione $tipo")
+                        .setItems(arrayOpciones) { _, which ->
+                            editText.setText(arrayOpciones[which])
+                        }
+                        .show()
+                } else {
+                    Toast.makeText(this@DevolucionesActivity, "No hay catálogo disponible para $tipo", Toast.LENGTH_SHORT).show()
+                    // Si no hay catálogo, permitir escribir manualmente o dejar como está
+                    editText.isFocusableInTouchMode = true
+                    editText.requestFocus()
+                }
+            }
+        }
     }
 }

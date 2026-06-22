@@ -14,7 +14,7 @@ class FacturasAdapter(
     private val onSelectionChanged: (List<CarteraEntity>) -> Unit
 ) : RecyclerView.Adapter<FacturasAdapter.FacturaViewHolder>() {
 
-    private val seleccionadas = mutableSetOf<CarteraEntity>()
+    private val seleccionadosIds = mutableSetOf<String>()
 
     class FacturaViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val cbSeleccion: CheckBox = view.findViewById(R.id.cb_seleccion_factura)
@@ -36,15 +36,17 @@ class FacturasAdapter(
         holder.tvSaldo.text = "$${factura.saldo}"
 
         holder.cbSeleccion.setOnCheckedChangeListener(null)
-        holder.cbSeleccion.isChecked = seleccionadas.contains(factura)
+        holder.cbSeleccion.isChecked = seleccionadosIds.contains(factura.docto)
 
-        holder.cbSeleccion.setOnCheckedChangeListener { _, isChecked ->
+        holder.cbSeleccion.setOnClickListener {
+            val isChecked = (it as CheckBox).isChecked
             if (isChecked) {
-                seleccionadas.add(factura)
+                seleccionadosIds.add(factura.docto)
             } else {
-                seleccionadas.remove(factura)
+                seleccionadosIds.remove(factura.docto)
             }
-            onSelectionChanged(seleccionadas.toList())
+            // Notificamos con la lista actual de objetos que coinciden con los IDs
+            onSelectionChanged(facturas.filter { seleccionadosIds.contains(it.docto) })
         }
     }
 
@@ -52,29 +54,33 @@ class FacturasAdapter(
 
     fun actualizarLista(nuevaLista: List<CarteraEntity>) {
         facturas = nuevaLista
-        seleccionadas.clear()
+        seleccionadosIds.clear()
         notifyDataSetChanged()
         onSelectionChanged(emptyList())
     }
 
+    fun actualizarListaSoloDatos(nuevaLista: List<CarteraEntity>) {
+        facturas = nuevaLista
+        notifyDataSetChanged()
+    }
+
     fun seleccionarTodo(seleccionar: Boolean) {
         if (seleccionar) {
-            seleccionadas.addAll(facturas)
+            seleccionadosIds.addAll(facturas.map { it.docto })
         } else {
-            seleccionadas.clear()
+            seleccionadosIds.clear()
         }
         notifyDataSetChanged()
-        onSelectionChanged(seleccionadas.toList())
+        onSelectionChanged(facturas.filter { seleccionadosIds.contains(it.docto) })
     }
     
-    fun getSeleccionadas() = seleccionadas.toList()
+    fun getSeleccionadas() = facturas.filter { seleccionadosIds.contains(it.docto) }
     
     fun getTodasFacturas() = facturas
 
-    fun setSeleccionadas(lista: List<CarteraEntity>) {
-        seleccionadas.clear()
-        seleccionadas.addAll(lista)
+    fun setSeleccionadosPorId(ids: List<String>) {
+        seleccionadosIds.clear()
+        seleccionadosIds.addAll(ids)
         notifyDataSetChanged()
-        onSelectionChanged(seleccionadas.toList())
     }
 }

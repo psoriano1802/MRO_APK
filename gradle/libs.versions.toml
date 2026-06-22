@@ -1,6 +1,6 @@
 [versions]
 agp = "8.9.2"
-kotlin = "2.0.21"
+kotlin = "2.1.10"
 coreKtx = "1.12.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -52,6 +52,7 @@ camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "
 
 lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "location"}
+appwrite = { module = "io.appwrite:sdk-for-android", version = "25.1.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

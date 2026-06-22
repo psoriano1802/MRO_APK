@@ -131,6 +131,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="BUSCAR"
+            android:visibility="gone"
             app:layout_constraintTop_toTopOf="@id/etProducto"
             app:layout_constraintBottom_toBottomOf="@id/etProducto"
             app:layout_constraintEnd_toEndOf="parent" />
@@ -196,9 +197,20 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:layout_marginBottom="16dp"
             android:text="REGISTRAR DESCARGA"
-            app:layout_constraintTop_toBottomOf="@id/etTotal"
+            app:layout_constraintTop_toBottomOf="@id/etTotal" />
+
+        <Button
+            android:id="@+id/btnFinalizarSync"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone"
+            android:text="FINALIZAR Y SINCRONIZAR JORNADA"
+            android:backgroundTint="@android:color/holo_red_dark"
+            android:textColor="@android:color/white"
+            app:layout_constraintTop_toBottomOf="@id/btnAceptar"
             app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>

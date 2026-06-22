@@ -43,6 +43,11 @@ interface ApiService {
     @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
     suspend fun validaDia(@Body request: LoginRequest): Response<ValidaDiaResponse>
 
+    //valida Recarga
+    @Headers("SOAPAction:validaRecarga")
+    @POST("/api_kepler_lacteos")
+    suspend fun validaRecarga(@Body request: LoginRequest): Response<ValidaRecargaResponse>
+
     //para el manejo de las ventas
     //documentos
     @Headers("SOAPAction:Documentos")
@@ -72,7 +77,7 @@ interface ApiService {
     //existecias productos
     @Headers("SOAPAction:existencia")
     @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
-    suspend fun getExistencias(@Body request: LoginRequest): Response<ResponseExistencia>
+    suspend fun getExistencias(@Body request: existenciaReques): Response<ResponseExistencia>
 
     //controles auxiliares
     @Headers("SOAPAction:control_Aux")
@@ -94,11 +99,21 @@ interface ApiService {
     @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
     suspend fun getCartera(@Body request: LoginRequest): Response<CarteraResponse>
 
+    //Cat Tmc
+    @Headers("SOAPAction:Cat_TMC")
+    @POST("/api_kepler_lacteos")
+    suspend fun getCatTmc(@Body request: CatTmcRequest): Response<ResponseCatTmc>
+
 
     //envio de documentos al servidor
-    @Headers("SOAPAction:Alta_Mano_Refaccion")
+    @Headers("SOAPAction:altaDoc")
     @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
     suspend fun sendDoctos(@Body request: AltaDoctosRequest): Response<AltaDoctosResponse>
+
+    //envio de gastos
+    @Headers("SOAPAction:Reg_gastos")
+    @POST("/api_kepler_lacteos")
+    suspend fun sendAltaGasto(@Body request: AltaGastoRequest): Response<AltaGastoResponse>
 
 
 

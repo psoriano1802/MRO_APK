@@ -35,4 +35,28 @@
         android:hint="Precio Unitario"
         android:inputType="numberDecimal"
         android:layout_marginTop="10dp"/>
+
+    <EditText
+        android:id="@+id/et_talla_dev"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Talla"
+        android:inputType="text"
+        android:layout_marginTop="10dp"/>
+
+    <EditText
+        android:id="@+id/et_modelo_dev"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Modelo"
+        android:inputType="text"
+        android:layout_marginTop="10dp"/>
+
+    <EditText
+        android:id="@+id/et_color_dev"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Color"
+        android:inputType="text"
+        android:layout_marginTop="10dp"/>
 </LinearLayout>

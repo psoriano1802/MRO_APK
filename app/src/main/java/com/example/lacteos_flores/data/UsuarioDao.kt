@@ -7,8 +7,11 @@ interface UsuarioDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertar(usuario: UsuarioEntity)
 
-    @Query("SELECT * FROM usuario where usuario = :usuario")
+    @Query("SELECT * FROM usuario where  LOWER(usuario) = LOWER(:usuario)")
     suspend fun obtenerUsuario(usuario: String): UsuarioEntity?
+
+    @Query("SELECT * FROM usuario LIMIT 1")
+    suspend fun obtenerCualquierUsuario(): UsuarioEntity?
     //obtenemos la sucursal del usuario
 
     //guardamos pantallas

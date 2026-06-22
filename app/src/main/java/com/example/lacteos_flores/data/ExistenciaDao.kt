@@ -18,14 +18,17 @@ interface ExistenciaDao {
 
     //consultar el total de existencias
 
-    @Query("SELECT count(*) FROM existencias")
+    @Query("SELECT count(existencias) FROM existencias")
     suspend fun obtenerTodasExistencias(): Int
 
     @Query("SELECT * FROM existencias WHERE clave = :cve AND CAST(existencias AS DOUBLE) > 0 ORDER BY fecha ASC")
     suspend fun obtenerLotesDisponibles(cve: String): List<ExistenciaEntity>
 
-    @Query("UPDATE existencias SET existencias = :nuevaExistencia WHERE clave = :cve AND auxiliar = :auxiliar")
+    @Query("UPDATE existencias SET existencias = :nuevaExistencia WHERE clave = :cve AND auxiliar = :auxiliar ")
     suspend fun actualizarExistencia(cve: String, auxiliar: String, nuevaExistencia: String)
+
+    @Query("UPDATE existencias SET existencias = :nuevaExistencia WHERE clave = :cve AND auxiliar = :auxiliar AND talla = :ta AND modelo = :mod AND color = :colo")
+    suspend fun actualizarExistAux(cve: String, auxiliar: String, nuevaExistencia: String, ta: String, mod: String, colo: String)
 
     @Query("DELETE FROM existencias")
     suspend fun eliminarTodo()
@@ -39,4 +42,13 @@ interface ExistenciaDao {
         HAVING  SUM(CAST(e.existencias AS DOUBLE)) > 0
     """)
     suspend fun obtenerProductosConStock(): List<ProductosEntity>
+
+    @Query("SELECT DISTINCT talla FROM existencias WHERE clave = :cve AND talla != '-' AND talla != ''")
+    suspend fun obtenerTallasPorProducto(cve: String): List<String>
+
+    @Query("SELECT DISTINCT modelo FROM existencias WHERE clave = :cve AND modelo != '-' AND modelo != ''")
+    suspend fun obtenerModelosPorProducto(cve: String): List<String>
+
+    @Query("SELECT DISTINCT color FROM existencias WHERE clave = :cve AND color != '-' AND color != ''")
+    suspend fun obtenerColoresPorProducto(cve: String): List<String>
 }

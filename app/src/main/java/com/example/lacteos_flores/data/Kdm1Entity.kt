@@ -29,5 +29,6 @@ data class Kdm1Entity(
     val monto: String,
     val porAsignar: String = "0.00",
     val banco: String = "",
-    val staSinc: String
+    var staSinc: String,
+    var folioKepler: String? = null
 )

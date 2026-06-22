@@ -15,5 +15,8 @@ data class ItemAuxEntity(
     val auxiliar: String,
     val partida: String,
     val producto: String,
-    val cantidad: String
+    val cantidad: String,
+    val talla: String = "-",
+    val modelo: String = "-",
+    val color: String = "-"
 )

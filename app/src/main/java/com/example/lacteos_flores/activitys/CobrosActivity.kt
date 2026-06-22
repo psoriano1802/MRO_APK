@@ -1,6 +1,7 @@
 package com.example.lacteos_flores.activitys
 
 import android.icu.text.SimpleDateFormat
+import android.util.Log
 import android.os.Bundle
 import android.view.View
 import android.widget.*
@@ -20,8 +21,15 @@ import com.example.lacteos_flores.data.CarteraEntity
 import com.example.lacteos_flores.data.ClientsEntity
 import com.example.lacteos_flores.data.Kdm1Entity
 import com.example.lacteos_flores.data.Kdm2cxcEntity
+import com.example.lacteos_flores.interfaz.RetrofitClient
+import com.example.lacteos_flores.models.AltaDoctosRequest
+import com.example.lacteos_flores.models.CobroItem
+import com.example.lacteos_flores.models.Login
 import com.example.lacteos_flores.utils.Globales
 import com.example.lacteos_flores.utils.TicketPrinter
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.content.Context
 import kotlinx.coroutines.launch
 import java.util.*
 
@@ -88,8 +96,8 @@ class CobrosActivity : AppCompatActivity() {
         btnRegistrarCobro = findViewById(R.id.btn_registrar_cobro)
 
         rvFacturas.layoutManager = LinearLayoutManager(this)
-        facturasAdapter = FacturasAdapter(emptyList()) { seleccionadas ->
-            actualizarTotalSeleccionado(seleccionadas)
+        facturasAdapter = FacturasAdapter(emptyList()) { _ ->
+            distribuirMontoSobreSeleccion()
         }
         rvFacturas.adapter = facturasAdapter
     }
@@ -129,6 +137,14 @@ class CobrosActivity : AppCompatActivity() {
         btnRegistrarCobro.setOnClickListener {
             registrarCobro()
         }
+
+        etMontoCobro.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                distribuirMontoSobreSeleccion()
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
     }
 
     private fun setupSpinners() {
@@ -198,9 +214,33 @@ class CobrosActivity : AppCompatActivity() {
     }
 
 
-    private fun actualizarTotalSeleccionado(seleccionadas: List<CarteraEntity>) {
-        val total = seleccionadas.sumOf { it.saldo.toDoubleOrNull() ?: 0.0 }
-        tvTotalSeleccionado.text = String.format("$%.2f", total)
+    private fun distribuirMontoSobreSeleccion() {
+        val montoStr = etMontoCobro.text.toString()
+        var montoRestante = montoStr.toDoubleOrNull() ?: 0.0
+        val seleccionadas = facturasAdapter.getSeleccionadas()
+        val foliosSeleccionados = seleccionadas.map { it.docto }.toSet()
+
+        val nuevasFacturas = listaFacturasOriginal.map { facturaOriginal ->
+            val saldoReal = facturaOriginal.saldo.toDoubleOrNull() ?: 0.0
+            
+            if (foliosSeleccionados.contains(facturaOriginal.docto) && montoRestante > 0) {
+                val abono = if (montoRestante >= saldoReal) saldoReal else montoRestante
+                val nuevoSaldo = saldoReal - abono
+                montoRestante -= abono
+                
+                facturaOriginal.copy(
+                    saldo = String.format(Locale.US, "%.2f", nuevoSaldo),
+                    abono = String.format(Locale.US, "%.2f", abono)
+                )
+            } else {
+                facturaOriginal.copy(abono = "0.00")
+            }
+        }
+
+        facturasAdapter.actualizarListaSoloDatos(nuevasFacturas)
+        
+        val totalDistribuido = (montoStr.toDoubleOrNull() ?: 0.0) - montoRestante
+        tvTotalSeleccionado.text = String.format(Locale.US, "$%.2f", totalDistribuido)
     }
 
     // ... Implementación de la nueva lógica de Aplicar Cobro
@@ -211,8 +251,8 @@ class CobrosActivity : AppCompatActivity() {
             return
         }
 
-        var montoRestante = montoStr.toDoubleOrNull() ?: 0.0
-        if (montoRestante <= 0) {
+        val montoTotal = montoStr.toDoubleOrNull() ?: 0.0
+        if (montoTotal <= 0) {
             Globales.showToast(this, "El monto debe ser mayor a 0")
             return
         }
@@ -222,41 +262,23 @@ class CobrosActivity : AppCompatActivity() {
             return
         }
 
-        val nuevasFacturas = mutableListOf<CarteraEntity>()
-        val seleccionadasAuto = mutableListOf<CarteraEntity>()
-
-        // Iteramos sobre los saldos originales para aplicar el cobro (FIFO)
-        for (facturaOriginal in listaFacturasOriginal) {
-            val saldoReal = facturaOriginal.saldo.toDoubleOrNull() ?: 0.0
-
-            if (montoRestante > 0) {
-                // Calculamos cuánto podemos abonar a esta factura
-                val abono = if (montoRestante >= saldoReal) saldoReal else montoRestante
-                val nuevoSaldo = saldoReal - abono
-                montoRestante -= abono
-
-                // Creamos una copia con el nuevo saldo y el abono aplicado
-                val facturaModificada = facturaOriginal.copy(
-                    saldo = String.format("%.2f", nuevoSaldo),
-                    abono = String.format("%.2f", abono)
-                )
-                nuevasFacturas.add(facturaModificada)
-                seleccionadasAuto.add(facturaModificada)
+        var acumulado = 0.0
+        val foliosAuto = mutableListOf<String>()
+        for (f in listaFacturasOriginal) {
+            val saldo = f.saldo.toDoubleOrNull() ?: 0.0
+            if (acumulado < montoTotal) {
+                foliosAuto.add(f.docto)
+                acumulado += saldo
             } else {
-                // Facturas a las que ya no les alcanzó el cobro
-                nuevasFacturas.add(facturaOriginal.copy(abono = "0.00"))
+                break
             }
         }
 
-        // Actualizamos la UI con los nuevos saldos calculados
-        facturasAdapter.actualizarLista(nuevasFacturas)
-        facturasAdapter.setSeleccionadas(seleccionadasAuto)
+        facturasAdapter.setSeleccionadosPorId(foliosAuto)
+        distribuirMontoSobreSeleccion()
 
-        // El total seleccionado ahora refleja el monto total que se distribuyó
-        val totalDistribuido = montoStr.toDouble() - montoRestante
-        tvTotalSeleccionado.text = String.format("$%.2f", totalDistribuido)
-
-        Globales.showToast(this, "Cobro distribuido: $${String.format("%.2f", totalDistribuido)}")
+        val totalEfectivo = if (acumulado > montoTotal) montoTotal else acumulado
+        Globales.showToast(this, "Cobro distribuido: $${String.format(Locale.US, "%.2f", totalEfectivo)}")
     }
 
     private fun registrarCobro() {
@@ -306,7 +328,7 @@ class CobrosActivity : AppCompatActivity() {
                 // 3. Preparar Encabezado (Kdm1)
                 val fechaActual = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                 val kdm1 = Kdm1Entity(
-                    suc = "1",
+                    suc = usuario.cve_suc,
                     alm = usuario.cve_alma,
                     gen = doctoConfig.gen,
                     nat = doctoConfig.nat,
@@ -367,7 +389,11 @@ class CobrosActivity : AppCompatActivity() {
                     )
                 }
 
-                // 6. Imprimir ticket de cobro
+                // 6. Intentar enviar al servidor (En segundo plano como en VentasActivity)
+               // ´demomento se queda a solo enviar los cobros por medio del sincronizador
+                //sincronizarCobroKepler(idKdm1)
+
+                // 7. Imprimir ticket de cobro
                 imprimirTicketCobro(clienteSeleccionado!!, montoTotalStr, formaPago, seleccionadas)
 
                 val mensaje = "Cobro registrado por $$montoTotalStr vía $formaPago\nCliente: ${clienteSeleccionado?.nombre}"
@@ -380,6 +406,41 @@ class CobrosActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Globales.showToast(this@CobrosActivity, "Error al registrar: ${e.message}")
                 e.printStackTrace()
+            }
+        }
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return when {
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+            else -> false
+        }
+    }
+
+    private fun sincronizarCobroKepler(iddoc: Long) {
+        if (!isNetworkAvailable()) {
+            Log.w("Cobros", "Sin conexión a internet. Sincronización pendiente.")
+            return
+        }
+
+        val user = Globales.usuario ?: ""
+        val pass = Globales.password ?: ""
+
+        // Usamos GlobalScope para que la tarea sobreviva al cierre de la Activity (finish())
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val db = AppDatabase.getDatabase(applicationContext)
+                val catalogosManager = com.example.lacteos_flores.controllers.CatalogosManager(db)
+                val login = com.example.lacteos_flores.models.Login(user, pass)
+                
+                catalogosManager.enviarCobro(iddoc, login)
+                Log.d("Cobros", "Sincronización exitosa en segundo plano para ID: $iddoc")
+            } catch (e: Exception) {
+                Log.e("Cobros", "Error al sincronizar en segundo plano: ${e.message}")
             }
         }
     }
@@ -431,14 +492,14 @@ class CobrosActivity : AppCompatActivity() {
             printDivider()
 
             // Docto. | Saldo Ant. | Abono
-            val rowHeader = String.format(Locale.US, "%-10s %10s %10s\n", "DOCTO", "SALDO", "ABONO")
+            val rowHeader = String.format(Locale.US, "%-14s %10s %10s\n", "DOCTO", "SALDO", "ABONO")
             printText(rowHeader)
             printDivider()
 
             for (f in facturas) {
                 // Usamos f.docto que es el numero de factura
-                val line = String.format(Locale.US, "%-10s %10s %10s\n",
-                    f.docto.take(10),
+                val line = String.format(Locale.US, "%-14s %10s %10s\n",
+                    f.docto.take(14),
                     f.saldo,
                     f.abono
                 )

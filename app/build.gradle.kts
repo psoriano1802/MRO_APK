@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.lacteos_flores"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.lacteos_flores"
@@ -57,6 +57,14 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a") // Las más comunes en teléfonos reales
+            isUniversalApk = false // No genera un APK gigante con todo
+        }
+    }
 }
 
 dependencies {
@@ -94,5 +102,5 @@ dependencies {
 
     //GPS
     implementation(libs.services.location)
-
+    implementation(libs.appwrite)
 }

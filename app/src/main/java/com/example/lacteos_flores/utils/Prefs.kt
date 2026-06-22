@@ -41,4 +41,12 @@ class Prefs(context: Context) {
     fun clear() {
         sharedPreferences.edit().clear().apply()
     }
+
+    fun setJornadaActiva(activa: Boolean) {
+        sharedPreferences.edit().putBoolean("jornada_activa", activa).apply()
+    }
+
+    fun isJornadaActiva(): Boolean {
+        return sharedPreferences.getBoolean("jornada_activa", false)
+    }
 }

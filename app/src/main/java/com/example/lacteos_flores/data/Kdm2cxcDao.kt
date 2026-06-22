@@ -15,4 +15,7 @@ interface Kdm2cxcDao {
 
     @Query("SELECT * FROM kdm2cxc WHERE iddoc = :iddoc")
     suspend fun obtenerPartidasPorDoc(iddoc: Long): List<Kdm2cxcEntity>
+
+    @Query("DELETE FROM kdm2cxc")
+    suspend fun eliminarTodoKdm2cxc()
 }

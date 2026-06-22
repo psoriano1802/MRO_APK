@@ -30,7 +30,8 @@ class MainActivity : AppCompatActivity() {
         MenuOptions("Cobranza", R.drawable.ic_reports,"CXC", CobrosActivity::class.java), //actualiza los datos catalogos, recargas
         MenuOptions("Devolucion", R.drawable.ic_settings,"DEV", DevolucionesActivity::class.java) ,//
         MenuOptions("Descarga",R.drawable.ic_inventory,"DES", DescargasActivity::class.java),
-        MenuOptions("Gastos",R.drawable.ic_orders,"GAS", GastosActivity::class.java)
+        MenuOptions("Gastos",R.drawable.ic_orders,"GAS", GastosActivity::class.java),
+        MenuOptions("Sincronizar", R.drawable.ic_settings, "SYNC", SincronizarDatosActivity::class.java)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,6 +66,12 @@ class MainActivity : AppCompatActivity() {
 
     }
     private fun validarExistenciasYProceder(clase: Class<out AppCompatActivity>) {
+        val prefs = Prefs(this)
+        if (!prefs.isJornadaActiva() && clase != JornadaActivity::class.java) {
+            Toast.makeText(this, "Debe iniciar una jornada para acceder a esta opción.", Toast.LENGTH_LONG).show()
+            return
+        }
+
         lifecycleScope.launch {
             // Consultamos el total de existencias
             val totalExistencia = db.existenciasDao().obtenerTodasExistencias()

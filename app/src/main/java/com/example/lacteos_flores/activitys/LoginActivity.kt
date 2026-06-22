@@ -1,10 +1,14 @@
 package com.example.lacteos_flores.activitys
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.lacteos_flores.databinding.ActivityLoginBinding
@@ -55,80 +59,120 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun loginManual(user: String, pass: String) {
-        //bloqueamos el boton para que solos eejecute una sola vez
-
         lifecycleScope.launch {
-            val isValid= validaUsuario(user, pass)
-            System.out.println("isValid:"+isValid)
-            if (isValid) {
-                binding.btnIngresar.isEnabled = false
-                navigateToMenuPrincipal()
+            val existingUser = loginUserDao.obtenerCualquierUsuario()
+            val hasConnection = isNetworkAvailable()
+
+            if (existingUser != null && existingUser.usuario.uppercase() != user.uppercase()) {
+                if (hasConnection) {
+                    // Si el usuario es diferente y hay internet, preguntamos
+                    AlertDialog.Builder(this@LoginActivity)
+                        .setTitle("Cambio de Usuario")
+                        .setMessage("Se ha detectado un usuario diferente (${existingUser.usuario}). Si ingresas con $user, se borrarán todos los datos locales para sincronizar la nueva cuenta. ¿Deseas continuar?")
+                        .setPositiveButton("Sí, borrar y entrar") { _, _ ->
+                            lifecycleScope.launch {
+                                ejecutarLogin(user, pass, true)
+                            }
+                        }
+                        .setNegativeButton("Cancelar", null)
+                        .show()
+                } else {
+                    // Si no hay internet, no permitimos cambiar de usuario
+                    Toast.makeText(
+                        this@LoginActivity,
+                        "No se puede cambiar a un usuario nuevo sin conexión a internet.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             } else {
-                Toast.makeText(
-                    this@LoginActivity,
-                    "Usuario o contraseña incorrectas",
-                    Toast.LENGTH_SHORT
-                ).show()
+                // Es el mismo usuario o no hay nadie registrado
+                ejecutarLogin(user, pass, false)
             }
         }
     }
-    //funcion que enviaralapeticion al ws de login
-    private suspend fun validaUsuario(user: String, pass: String): Boolean = withContext(Dispatchers.IO) {
 
-        try{
-            val request = LoginRequest(Login(user, pass))
-            System.out.println("requestLogin:"+request)
-            val response = RetrofitClient.apiService.login(request)
-            System.out.println("responseLogin:"+response)
+    private suspend fun ejecutarLogin(user: String, pass: String, shouldClear: Boolean) {
+        val isValid = validaUsuario(user, pass, shouldClear)
+        if (isValid) {
+            binding.btnIngresar.isEnabled = false
+            navigateToMenuPrincipal()
+        }
+    }
 
-            if(response.isSuccessful){
-                val res = response.body()
-                System.out.println("resLogin:"+res)
-                res?.LoginResponse?.let { items ->
-                    val okItem = items.find { it.ok != null }
-                    if (okItem?.ok == "1") {
+    //funcion que enviara la peticion al ws de login
+    private suspend fun validaUsuario(user: String, pass: String, shouldClear: Boolean): Boolean = withContext(Dispatchers.IO) {
+        val hasConnection = isNetworkAvailable()
+        val localUser = loginUserDao.obtenerUsuario(user)
 
+        if (hasConnection) {
+            try {
+                val request = LoginRequest(Login(user, pass))
+                val response = RetrofitClient.apiService.login(request)
 
-                        //guardamos el usuario con persitensia
-                        val usuario = items.find { it.User != null }
-                        val cvesuc = items.find { it.NoSucursal != null }
-                        val sucursal = items.find { it.Sucursal != null }
-                        val cvealm = items.find { it.NoAlmacen != null }
-                        val alm = items.find { it.Almacen != null }
+                if (response.isSuccessful) {
+                    val res = response.body()
+                    res?.LoginResponse?.let { items ->
+                        val okItem = items.find { it.ok != null }
+                        if (okItem?.ok == "1") {
 
-                        //por validar si se reuqiere ocultar o solo bloquear
-                        //loginUserDao.eliminarPantallas(user)
+                            // Borramos tablas solo si se confirmó el cambio de usuario
+                            if (shouldClear) {
+                                System.out.println("Limpiando tablas por cambio de usuario confirmado")
+                                db.clearAllTables()
+                            }
 
-                        val usuarioEntity = UsuarioEntity(
-                            usuario = usuario?.User ?: "",
-                            sucursal = usuario?.Sucursal ?: "",
-                            cve_suc = usuario?.NoSucursal?: "",
-                            cve_alma = usuario?.NoAlmacen ?: "",
-                            almacen = usuario?.Almacen ?:"",
-                            pass = pass.toString(),
-                            lista = usuario?.Lista ?:"")
-                        System.out.println("pantallas:"+usuarioEntity)
-                        prefs.guardarUsuario(usuario?.User ?: "", pass, "")
-                        Globales.usuario = usuario?.User
-                        Globales.password = pass
+                            val usuario = items.find { it.User != null }
 
-                        loginUserDao.insertar(usuarioEntity)
+                            val usuarioEntity = UsuarioEntity(
+                                usuario = usuario?.User ?: "",
+                                sucursal = usuario?.Sucursal ?: "",
+                                cve_suc = usuario?.NoSucursal ?: "",
+                                cve_alma = usuario?.NoAlmacen ?: "",
+                                almacen = usuario?.Almacen ?: "",
+                                pass = pass,
+                                lista = usuario?.Lista ?: ""
+                            )
+                            
+                            prefs.guardarUsuario(usuario?.User ?: "", pass, usuario?.Sucursal ?: "")
+                            Globales.usuario = usuario?.User
+                            Globales.password = pass
 
-                        return@withContext true
-                    } else {
-
-                        return@withContext false
+                            loginUserDao.insertar(usuarioEntity)
+                            return@withContext true
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                System.out.println("Error en WS: $e")
             }
-            false
-        }catch (e: Exception){
-            withContext(Dispatchers.Main) {
-                System.out.println("Error de conexion:"+e)
-                Toast.makeText(this@LoginActivity, "Error de conexion", Toast.LENGTH_SHORT).show()
-            }
-            false
         }
+
+        // Validación local (offline o fallo de WS)
+        if (localUser != null && localUser.pass == pass) {
+            prefs.guardarUsuario(localUser.usuario, localUser.pass, localUser.sucursal)
+            Globales.usuario = localUser.usuario
+            Globales.password = localUser.pass
+            return@withContext true
+        }
+
+        withContext(Dispatchers.Main) {
+            if (hasConnection) {
+                Toast.makeText(this@LoginActivity, "Usuario o contraseña incorrectas", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this@LoginActivity, "Sin conexión y credenciales locales no encontradas", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        return@withContext false
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
     }
 
 

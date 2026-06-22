@@ -12,7 +12,7 @@ import com.example.lacteos_flores.models.AltaDoctosResponse
 import com.example.lacteos_flores.models.Login
 import com.example.lacteos_flores.models.LoginRequest
 import com.example.lacteos_flores.models.PaquetesRequest
-import com.example.lacteos_flores.models.itemsDoc
+import com.example.lacteos_flores.models.ItemsDoc
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.Response
@@ -108,10 +108,30 @@ object Globales{
 
 
 
-    suspend fun sendDocto(suc: String,alm: String,gen: String,nat: String,grp: String,tip: String,fec: String,mon: String,pari: String,ref: String,coment: String,soli: String,monto: String,fe: String,te: String,sal: String,proy: String,depto: String,items: List<itemsDoc>): Result<AltaDoctosResponse> {
+    suspend fun sendDocto(suc: String,alm: String,gen: String,nat: String,grp: String,tip: String,fec: String,mon: String,pari: String,ref: String,coment: String,soli: String,monto: String,fe: String,te: String,sal: String,proy: String,depto: String,items: List<ItemsDoc>): Result<AltaDoctosResponse> {
         return consumeWS {
             val login = Login(usuario.toString(), password.toString())
-            val request = AltaDoctosRequest(login,suc,alm,gen,nat,grp,tip,fec,mon,pari,ref,coment,null,null,null,null,null,null,null,null,null,soli,monto,fe,te,sal,proy,depto,items)
+            val request = AltaDoctosRequest(
+                login = login,
+                suc = suc,
+                alm = alm,
+                gen = gen,
+                nat = nat,
+                grp = grp,
+                tipo = tip,
+                fecha = fec,
+                moneda = mon,
+                paridad = pari,
+                refer = ref,
+                comenta = coment,
+                solicita = soli,
+                monto = monto,
+                vence = fe,
+                saldo = sal,
+                proyecto = proy,
+                depto = depto,
+                items = items
+            )
             println("requestalta:"+request)
             RetrofitClient.apiService.sendDoctos(request)
         }

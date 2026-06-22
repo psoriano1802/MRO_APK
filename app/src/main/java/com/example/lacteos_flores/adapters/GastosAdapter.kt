@@ -46,4 +46,9 @@ class GastosAdapter(
     }
 
     fun obtenerLista(): List<GastosUI> = listaGastos
+
+    fun limpiarLista() {
+        listaGastos.clear()
+        notifyDataSetChanged()
+    }
 }

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@android:color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sincronización de Datos"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textAlignment="center"
+            android:layout_marginBottom="24dp"
+            android:textColor="@android:color/black"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Catálogos"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"
+            android:textColor="@android:color/darker_gray"/>
+
+        <!-- Documentos -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="4dp">
+            <Button android:id="@+id/btnSincronizarDocumentos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Documentos" />
+            <ProgressBar android:id="@+id/pbDocumentos" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
+            <TextView android:id="@+id/tvResDocumentos" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
+        </LinearLayout>
+
+        <!-- Bancos -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="4dp">
+            <Button android:id="@+id/btnSincronizarBancos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Bancos" />
+            <ProgressBar android:id="@+id/pbBancos" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
+            <TextView android:id="@+id/tvResBancos" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
+        </LinearLayout>
+
+        <!-- Clientes -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="4dp">
+            <Button android:id="@+id/btnSincronizarClientes" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Clientes" />
+            <ProgressBar android:id="@+id/pbClientes" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
+            <TextView android:id="@+id/tvResClientes" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
+        </LinearLayout>
+
+        <!-- Cartera -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="4dp">
+            <Button android:id="@+id/btnSincronizarCartera" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Cartera" />
+            <ProgressBar android:id="@+id/pbCartera" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
+            <TextView android:id="@+id/tvResCartera" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
+        </LinearLayout>
+
+        <!-- Gastos -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="4dp">
+            <Button android:id="@+id/btnSincronizarGastos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Gastos" />
+            <ProgressBar android:id="@+id/pbGastos" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
+            <TextView android:id="@+id/tvResGastos" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
+        </LinearLayout>
+
+        <!-- Lista Precios -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="4dp">
+            <Button android:id="@+id/btnSincronizarListasPrecio" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Lista Precios" />
+            <ProgressBar android:id="@+id/pbListasPrecio" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
+            <TextView android:id="@+id/tvResListasPrecio" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
+        </LinearLayout>
+
+        <!-- Productos -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="16dp">
+            <Button android:id="@+id/btnSincronizarProductos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Productos" />
+            <ProgressBar android:id="@+id/pbProductos" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
+            <TextView android:id="@+id/tvResProductos" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Envía y Recibe Datos"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"
+            android:textColor="@android:color/darker_gray"/>
+
+        <!-- Nueva Existencia -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="4dp">
+            <Button android:id="@+id/btnSincronizarExistencia" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Nueva Existencia" />
+            <ProgressBar android:id="@+id/pbExistencia" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
+            <TextView android:id="@+id/tvResExistencia" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
+        </LinearLayout>
+
+        <!-- Cobros -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="4dp">
+            <Button android:id="@+id/btnSincronizarCobros" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Cobros" />
+            <ProgressBar android:id="@+id/pbCobros" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
+            <TextView android:id="@+id/tvResCobros" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
+        </LinearLayout>
+
+        <!-- Movimientos -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="16dp">
+            <Button android:id="@+id/btnSincronizarMovimientos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Movimientos" />
+            <ProgressBar android:id="@+id/pbMovimientos" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
+            <TextView android:id="@+id/tvResMovimientos" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#CCCCCC"
+            android:layout_marginBottom="16dp"/>
+
+        <Button
+            android:id="@+id/btnSincronizarTodo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sincronizar Todo"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btnVerHistorial"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ver Historial Documentos"
+            android:layout_marginBottom="24dp"/>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:indeterminate="true"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:text=""
+            android:textColor="@android:color/black"/>
+
+        <!-- Hidden buttons to keep IDs if needed -->
+        <Button android:id="@+id/btnSincronizarMoneda" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone"/>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

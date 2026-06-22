@@ -7,7 +7,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
+import android.text.InputFilter
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -16,6 +18,9 @@ import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.content.Context
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -130,9 +135,11 @@ class VentasActivity : AppCompatActivity() {
         db = AppDatabase.getDatabase(this)
         loginUserDao = db.usuarioDao()
         //inicializamos el adapter con callback para recalcular totales automáticamente al editar/eliminar
-        hproductsAdapter = RefaccionesAdapter(mutableListOf(), listOf("Clave", "Cant", "Uni", "Precio", "Importe")) {
+        hproductsAdapter = RefaccionesAdapter(mutableListOf(), listOf("Clave", "Cant", "Uni", "Precio", "Importe"), true, {
             calcularTotales()
-        }
+        }, { item, pos ->
+            mostrarDialogoEdicionTMC(item, pos)
+        })
         recyclerView.adapter = hproductsAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
@@ -149,6 +156,11 @@ class VentasActivity : AppCompatActivity() {
 
     //funcion para confiurar los listeners de los botones
     private fun setupListeners() {
+        etNombreCliente.setOnClickListener {
+            selectedClient?.let { cliente ->
+                mostrarDialogoInfoCliente(cliente)
+            } ?: Toast.makeText(this, "Seleccione un cliente primero", Toast.LENGTH_SHORT).show()
+        }
         etCodigoCliente.setOnClickListener {
             // Aquí puedes implementar la lógica para guardar los datos
             buscarCliente()
@@ -229,6 +241,7 @@ class VentasActivity : AppCompatActivity() {
             selectedClient = cli
             etNombreCliente.setText(cli.nombre)
             etCodigoCliente.setText(cli.clave)
+            calcularTotales()
             val limcre = cli.limcre
             //obtenemos los movimientos del cliente para validar el limite de credito y los dias de credito
             lifecycleScope.launch {
@@ -272,9 +285,22 @@ class VentasActivity : AppCompatActivity() {
 
     }
     //funcion que abrira un dialog con la informacion del cliente
-    private fun dialogInfoCliente(){
-
+    private fun mostrarDialogoInfoCliente(cliente: ClientsEntity) {
+        val direccion = "${cliente.calle}, ${cliente.colo}, ${cliente.pobl}, CP: ${cliente.cp}"
+        val limiteFormateado = String.format(Locale.US, "%,.2f", cliente.limcre.toDoubleOrNull() ?: 0.0)
+        
+        AlertDialog.Builder(this)
+            .setTitle("Información del Cliente")
+            .setMessage("""
+                Nombre: ${cliente.nombre}
+                RFC: ${cliente.rfc}
+                Límite de Crédito: $ $limiteFormateado
+                Dirección: $direccion
+            """.trimIndent())
+            .setPositiveButton("Cerrar", null)
+            .show()
     }
+
     //funcion para validaciones de los clientes limite de credito y dias de credito
     private fun validarCliente(){
 
@@ -282,15 +308,290 @@ class VentasActivity : AppCompatActivity() {
 
     //funcion para reallizar la busqueda de productos
     private fun buscarProductos() {
-        val bottomSheet = BusquedaRMBottomSheet("1") { resultadoSeleccionado ->
-            val cant = resultadoSeleccionado.cant ?: 0.0
-            val impo = (resultadoSeleccionado.costuni ?: 0.0) * cant
-            val refaccion = ProductoUI(resultadoSeleccionado.cve, cant, resultadoSeleccionado.uni, resultadoSeleccionado.costuni, impo, resultadoSeleccionado.descripcion)
+        val yaAgregados = hproductsAdapter.obtenerLista()
+        val bottomSheet = BusquedaRMBottomSheet("1", false, yaAgregados) { seleccionado ->
+            
+            lifecycleScope.launch {
+                val productoBase = db.productosDao().obtenerProducto(seleccionado.cve ?: "")
+                
+                // Mostrar diálogo para capturar cantidad y atributos (Talla, Modelo, Color)
+                val dialogView = LayoutInflater.from(this@VentasActivity).inflate(R.layout.dialog_devolucion_item, null)
+                val tvInfo: TextView = dialogView.findViewById(R.id.tv_producto_info)
+                val etCant: EditText = dialogView.findViewById(R.id.et_cantidad_dev)
+                val etLote: EditText = dialogView.findViewById(R.id.et_lote_dev)
+                val etPrecio: EditText = dialogView.findViewById(R.id.et_precio_dev)
+                val etTalla: EditText = dialogView.findViewById(R.id.et_talla_dev)
+                val etModelo: EditText = dialogView.findViewById(R.id.et_modelo_dev)
+                val etColor: EditText = dialogView.findViewById(R.id.et_color_dev)
 
-            hproductsAdapter.agregarItem(refaccion)
-            calcularTotales()
+                // En VENTAS el lote es AUTOMÁTICO, ocultamos el campo
+                etLote.visibility = View.GONE
+                
+                // Forzar MAYUSCULAS en los campos TMC
+                etTalla.filters = arrayOf(InputFilter.AllCaps())
+                etModelo.filters = arrayOf(InputFilter.AllCaps())
+                etColor.filters = arrayOf(InputFilter.AllCaps())
+
+                // Configurar visibilidad según el campo 'tmc' de la DB
+                when (productoBase?.tmc) {
+                    "1" -> {
+                        etTalla.visibility = View.VISIBLE
+                        etModelo.visibility = View.GONE
+                        etColor.visibility = View.GONE
+                        configurarSeleccionCatalogo(etTalla, seleccionado.cve ?: "", "TALLA")
+                    }
+                    "2" -> {
+                        etTalla.visibility = View.VISIBLE
+                        etModelo.visibility = View.VISIBLE
+                        etColor.visibility = View.GONE
+                        configurarSeleccionCatalogo(etTalla, seleccionado.cve ?: "", "TALLA")
+                        configurarSeleccionCatalogo(etModelo, seleccionado.cve ?: "", "MODELO")
+                    }
+                    "3" -> {
+                        etTalla.visibility = View.VISIBLE
+                        etModelo.visibility = View.VISIBLE
+                        etColor.visibility = View.VISIBLE
+                        configurarSeleccionCatalogo(etTalla, seleccionado.cve ?: "", "TALLA")
+                        configurarSeleccionCatalogo(etModelo, seleccionado.cve ?: "", "MODELO")
+                        configurarSeleccionCatalogo(etColor, seleccionado.cve ?: "", "COLOR")
+                    }
+                    else -> {
+                        etTalla.visibility = View.GONE
+                        etModelo.visibility = View.GONE
+                        etColor.visibility = View.GONE
+                    }
+                }
+
+                tvInfo.text = "${seleccionado.cve} - ${seleccionado.descripcion}"
+                etCant.setText("1.0")
+                etPrecio.setText(seleccionado.costuni?.toString() ?: "0.0")
+                etPrecio.isEnabled = false // Precio no editable
+
+                val dialog = AlertDialog.Builder(this@VentasActivity)
+                    .setTitle("Detalle de Producto")
+                    .setView(dialogView)
+                    .setPositiveButton("Agregar", null) // Lo configuramos después para validar sin cerrar
+                    .setNegativeButton("Cancelar", null)
+                    .create()
+
+                dialog.show()
+
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    val cant = etCant.text.toString().toDoubleOrNull() ?: 0.0
+                    val precio = etPrecio.text.toString().toDoubleOrNull() ?: 0.0
+                    val tallaText = etTalla.text.toString().uppercase()
+                    val modeloText = etModelo.text.toString().uppercase()
+                    val colorText = etColor.text.toString().uppercase()
+
+                    // Validaciones según TMC
+                    val tmc = productoBase?.tmc ?: "0"
+                    if (tmc >= "1" && (tallaText.isEmpty() || tallaText == "-")) {
+                        Toast.makeText(this@VentasActivity, "La Talla es obligatoria", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+                    if (tmc >= "2" && (modeloText.isEmpty() || modeloText == "-")) {
+                        Toast.makeText(this@VentasActivity, "El Modelo es obligatorio", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+                    if (tmc >= "3" && (colorText.isEmpty() || colorText == "-")) {
+                        Toast.makeText(this@VentasActivity, "El Color es obligatorio", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+
+                    if (cant <= 0) {
+                        Toast.makeText(this@VentasActivity, "La cantidad debe ser mayor a 0", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+
+                    lifecycleScope.launch {
+                        // Validar stock total para esta combinación específica de TMC
+                        val lotesDisponibles = db.existenciasDao().obtenerLotesDisponibles(seleccionado.cve ?: "").filter {
+                            (tallaText == "-" || tallaText.isEmpty() || it.talla == tallaText) &&
+                            (modeloText == "-" || modeloText.isEmpty() || it.modelo == modeloText) &&
+                            (colorText == "-" || colorText.isEmpty() || it.color == colorText)
+                        }
+                        
+                        var stockDisponibleTMC = lotesDisponibles.sumOf { it.existencias.toDoubleOrNull() ?: 0.0 }
+                        
+                        // Restar lo ya agregado en la tabla
+                        val yaAgregado = yaAgregados.filter { 
+                            it.cve == seleccionado.cve && 
+                            (tallaText.ifEmpty { "-" } == it.talla) && 
+                            (modeloText.ifEmpty { "-" } == it.modelo) && 
+                            (colorText.ifEmpty { "-" } == it.color)
+                        }.sumOf { it.cant ?: 0.0 }
+                        
+                        stockDisponibleTMC -= yaAgregado
+
+                        if (cant > stockDisponibleTMC) {
+                            Toast.makeText(this@VentasActivity, "Stock insuficiente para esta variante. Disponible: $stockDisponibleTMC", Toast.LENGTH_LONG).show()
+                            return@launch
+                        }
+
+                        val refaccion = ProductoUI(
+                            seleccionado.cve, 
+                            cant, 
+                            seleccionado.uni, 
+                            precio, 
+                            cant * precio, 
+                            seleccionado.descripcion,
+                            talla = tallaText.ifEmpty { "-" },
+                            modelo = modeloText.ifEmpty { "-" },
+                            color = colorText.ifEmpty { "-" },
+                            lote = "MULTIPLE" // Indica que se usará FIFO al guardar
+                        )
+
+                        hproductsAdapter.agregarItem(refaccion)
+                        calcularTotales()
+                        dialog.dismiss()
+                    }
+                }
+            }
         }
         bottomSheet.show(supportFragmentManager, "BusquedaRMBottomSheet")
+    }
+
+    private fun mostrarDialogoEdicionTMC(item: ProductoUI, position: Int) {
+        lifecycleScope.launch {
+            val productoBase = db.productosDao().obtenerProducto(item.cve ?: "") ?: return@launch
+            
+            val dialogView = LayoutInflater.from(this@VentasActivity).inflate(R.layout.dialog_editar_item, null)
+            val etCant: EditText = dialogView.findViewById(R.id.et_cantidad_edit)
+            val etPrecio: EditText = dialogView.findViewById(R.id.et_precio_edit)
+            val etTalla: EditText = dialogView.findViewById(R.id.et_talla_edit)
+            val etModelo: EditText = dialogView.findViewById(R.id.et_modelo_edit)
+            val etColor: EditText = dialogView.findViewById(R.id.et_color_edit)
+
+            etCant.setText(item.cant.toString())
+            etPrecio.setText(item.costuni.toString())
+            etPrecio.isEnabled = false // Precio no editable
+            etTalla.setText(item.talla)
+            etModelo.setText(item.modelo)
+            etColor.setText(item.color)
+
+            // Configurar visibilidad según el campo 'tmc'
+            when (productoBase.tmc) {
+                "1" -> {
+                    etTalla.visibility = View.VISIBLE
+                    configurarSeleccionCatalogo(etTalla, item.cve ?: "", "TALLA")
+                }
+                "2" -> {
+                    etTalla.visibility = View.VISIBLE
+                    etModelo.visibility = View.VISIBLE
+                    configurarSeleccionCatalogo(etTalla, item.cve ?: "", "TALLA")
+                    configurarSeleccionCatalogo(etModelo, item.cve ?: "", "MODELO")
+                }
+                "3" -> {
+                    etTalla.visibility = View.VISIBLE
+                    etModelo.visibility = View.VISIBLE
+                    etColor.visibility = View.VISIBLE
+                    configurarSeleccionCatalogo(etTalla, item.cve ?: "", "TALLA")
+                    configurarSeleccionCatalogo(etModelo, item.cve ?: "", "MODELO")
+                    configurarSeleccionCatalogo(etColor, item.cve ?: "", "COLOR")
+                }
+            }
+
+            val dialog = AlertDialog.Builder(this@VentasActivity)
+                .setTitle("Editar Item")
+                .setView(dialogView)
+                .setPositiveButton("Guardar", null)
+                .setNegativeButton("Cancelar", null)
+                .create()
+
+            dialog.show()
+
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val nuevaCant = etCant.text.toString().toDoubleOrNull() ?: 0.0
+                val nuevoPrecio = etPrecio.text.toString().toDoubleOrNull() ?: 0.0
+                val tallaText = etTalla.text.toString().uppercase()
+                val modeloText = etModelo.text.toString().uppercase()
+                val colorText = etColor.text.toString().uppercase()
+
+                // Validaciones TMC
+                val tmc = productoBase.tmc
+                if (tmc >= "1" && (tallaText.isEmpty() || tallaText == "-")) {
+                    Toast.makeText(this@VentasActivity, "La Talla es obligatoria", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                if (tmc >= "2" && (modeloText.isEmpty() || modeloText == "-")) {
+                    Toast.makeText(this@VentasActivity, "El Modelo es obligatorio", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                if (tmc >= "3" && (colorText.isEmpty() || colorText == "-")) {
+                    Toast.makeText(this@VentasActivity, "El Color es obligatorio", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                if (nuevaCant <= 0) {
+                    Toast.makeText(this@VentasActivity, "Cantidad inválida", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                lifecycleScope.launch {
+                    // Validar Stock para la nueva variante/cantidad
+                    val lotesDisponibles = db.existenciasDao().obtenerLotesDisponibles(item.cve ?: "").filter {
+                        (tallaText == "-" || it.talla == tallaText) &&
+                        (modeloText == "-" || it.modelo == modeloText) &&
+                        (colorText == "-" || it.color == colorText)
+                    }
+                    
+                    var stockDisponibleTMC = lotesDisponibles.sumOf { it.existencias.toDoubleOrNull() ?: 0.0 }
+                    
+                    // Restar otros items del mismo producto (excepto el que estamos editando)
+                    val yaAgregado = hproductsAdapter.obtenerLista().filterIndexed { idx, p -> 
+                        idx != position && p.cve == item.cve && p.talla == tallaText && p.modelo == modeloText && p.color == colorText
+                    }.sumOf { it.cant ?: 0.0 }
+                    
+                    stockDisponibleTMC -= yaAgregado
+
+                    if (nuevaCant > stockDisponibleTMC) {
+                        Toast.makeText(this@VentasActivity, "Stock insuficiente. Disponible: $stockDisponibleTMC", Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
+
+                    // Aplicar cambios
+                    item.cant = nuevaCant
+                    item.costuni = nuevoPrecio
+                    item.importe = nuevaCant * nuevoPrecio
+                    item.talla = tallaText.ifEmpty { "-" }
+                    item.modelo = modeloText.ifEmpty { "-" }
+                    item.color = colorText.ifEmpty { "-" }
+
+                    hproductsAdapter.notifyItemChanged(position + 1)
+                    calcularTotales()
+                    dialog.dismiss()
+                }
+            }
+        }
+    }
+
+    private fun configurarSeleccionCatalogo(editText: EditText, claveProd: String, tipo: String) {
+        editText.isFocusable = false
+        editText.isClickable = true
+        editText.setOnClickListener {
+            lifecycleScope.launch {
+                val opciones = when (tipo) {
+                    "TALLA" -> db.existenciasDao().obtenerTallasPorProducto(claveProd)
+                    "MODELO" -> db.existenciasDao().obtenerModelosPorProducto(claveProd)
+                    "COLOR" -> db.existenciasDao().obtenerColoresPorProducto(claveProd)
+                    else -> emptyList()
+                }
+
+                if (opciones.isNotEmpty()) {
+                    val arrayOpciones = opciones.toTypedArray()
+                    AlertDialog.Builder(this@VentasActivity)
+                        .setTitle("Seleccione $tipo")
+                        .setItems(arrayOpciones) { _, which ->
+                            editText.setText(arrayOpciones[which])
+                        }
+                        .show()
+                } else {
+                    Toast.makeText(this@VentasActivity, "No hay catálogo disponible para $tipo", Toast.LENGTH_SHORT).show()
+                    editText.isFocusableInTouchMode = true
+                    editText.requestFocus()
+                }
+            }
+        }
     }
 
     private fun showDatePicker(campoFecha: TextView) {
@@ -313,10 +614,19 @@ class VentasActivity : AppCompatActivity() {
         val lista = hproductsAdapter.obtenerLista()
         var subtotal = 0.0
         var totalIva = 0.0
+        val descuentoCliente = selectedClient?.descuentop?.toDoubleOrNull() ?: 0.0
+
         for (item in lista) {
-            val importe = (item.cant ?: 0.0) * (item.costuni ?: 0.0)
-            subtotal += importe
-            totalIva += importe * 0.16 // IVA 16%
+            val originalImporte = (item.cant ?: 0.0) * (item.costuni ?: 0.0)
+            // Aplicar descuento si es mayor a 0 y menor al importe total del producto (línea)
+            val importeConDescuento = if (descuentoCliente > 0 && descuentoCliente < originalImporte) {
+                originalImporte - descuentoCliente
+            } else {
+                originalImporte
+            }
+            
+            subtotal += importeConDescuento
+            totalIva += importeConDescuento * 0.16 // IVA 16% sobre el importe descontado
         }
         val total = subtotal + totalIva
 
@@ -367,10 +677,23 @@ class VentasActivity : AppCompatActivity() {
                 val docConfig = filteredDoctos[selectedDocPos]
                 val fecha = etFecha.text.toString()
                 val almacen = etAlmacen.text.toString()
+                val montoTotalVenta = etTotal.text.toString().toDoubleOrNull() ?: 0.0
+
+                // 1. Validar Límite de Crédito antes de guardar (si es crédito)
+                val clienteActual = db.clientsDao().obtenerCliente(cliente)
+                val condicionPago = spTipoDoc.selectedItem.toString()
+                
+                if (condicionPago.uppercase().contains("CREDITO")) {
+                    val limiteDisponible = clienteActual?.limcre?.toDoubleOrNull() ?: 0.0
+                    if (montoTotalVenta > limiteDisponible) {
+                        Toast.makeText(this@VentasActivity, "Crédito insuficiente. Disponible: $limiteDisponible", Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
+                }
 
                 // Header (Kdm1)
                 val kdm1 = Kdm1Entity(
-                    suc = "1",
+                    suc = usuario.cve_suc,
                     alm = usuario.cve_alma,
                     gen = docConfig.gen,
                     nat = docConfig.nat,
@@ -404,10 +727,19 @@ class VentasActivity : AppCompatActivity() {
                     var cantidadRestante = item.cant ?: 0.0
 
                     // 1. Crear Partida Kdm2 (Encabezado de la partida)
+                    val originalImportePartida = (item.cant ?: 0.0) * (item.costuni ?: 0.0)
+                    val descuentoCliente = selectedClient?.descuentop?.toDoubleOrNull() ?: 0.0
+                    
+                    val importeFinalPartida = if (descuentoCliente > 0 && descuentoCliente < originalImportePartida) {
+                        originalImportePartida - descuentoCliente
+                    } else {
+                        originalImportePartida
+                    }
+
                     partidas.add(Kdm2Entity(
                         iddoc = idDoc,
-                        suc = "1",
-                        alm = almacen,
+                        suc = usuario.cve_suc,
+                        alm = usuario.cve_alma,
                         gen = docConfig.gen,
                         nat = docConfig.nat,
                         grp = docConfig.grp,
@@ -418,12 +750,17 @@ class VentasActivity : AppCompatActivity() {
                         descrip = item.descripcion ?: "",
                         unidad = item.uni ?: "",
                         precio = item.costuni.toString(),
-                        importe = ((item.cant ?: 0.0) * (item.costuni ?: 0.0)).toString(),
-                        iva = ((item.cant ?: 0.0) * (item.costuni ?: 0.0) * 0.16).toString()
+                        importe = String.format(Locale.US, "%.2f", importeFinalPartida),
+                        iva = String.format(Locale.US, "%.2f", importeFinalPartida * 0.16)
                     ))
 
                     // 2. Lógica FIFO para descontar de múltiples lotes si es necesario
-                    val lotesDisponibles = db.existenciasDao().obtenerLotesDisponibles(item.cve ?: "")
+                    // Filtramos por los atributos seleccionados (Talla, Modelo, Color)
+                    val lotesDisponibles = db.existenciasDao().obtenerLotesDisponibles(item.cve ?: "").filter {
+                        (item.talla == "-" || it.talla == item.talla) &&
+                        (item.modelo == "-" || it.modelo == item.modelo) &&
+                        (item.color == "-" || it.color == item.color)
+                    }
                     
                     for (loteEntity in lotesDisponibles) {
                         if (cantidadRestante <= 0) break
@@ -436,8 +773,8 @@ class VentasActivity : AppCompatActivity() {
                         // Registro en ItemAux para este lote
                         partidasAux.add(ItemAuxEntity(
                             iddoc = idDoc,
-                            suc = "1",
-                            alm = almacen,
+                            suc = usuario.cve_suc,
+                            alm = usuario.cve_alma,
                             gen = docConfig.gen,
                             nat = docConfig.nat,
                             grp = docConfig.grp,
@@ -445,7 +782,10 @@ class VentasActivity : AppCompatActivity() {
                             auxiliar = loteEntity.auxiliar,
                             partida = partidaNum,
                             producto = item.cve ?: "",
-                            cantidad = cantATomar.toString()
+                            cantidad = cantATomar.toString(),
+                            talla = loteEntity.talla,
+                            modelo = loteEntity.modelo,
+                            color = loteEntity.color
                         ))
 
                         // Actualización de Existencias en la base de datos local
@@ -471,10 +811,25 @@ class VentasActivity : AppCompatActivity() {
                     db.itemAuxDao().insertaPartidasAux(partidasAux)
                 }
 
+                // 3. Actualizar Límite de Crédito del Cliente (Control de saldo disponible)
+                if (clienteActual != null) {
+                    val limiteActual = clienteActual.limcre.toDoubleOrNull() ?: 0.0
+                    val nuevoLimite = limiteActual - montoTotalVenta
+                    
+                    db.clientsDao().actualizarLimiteCredito(
+                        cliente, 
+                        String.format(Locale.US, "%.2f", nuevoLimite)
+                    )
+                    Log.d("Ventas", "Nuevo límite de crédito para $cliente: $nuevoLimite")
+                }
+
                 Toast.makeText(this@VentasActivity, "Documento guardado localmente", Toast.LENGTH_SHORT).show()
                 
                 // Imprimir ticket después de guardar
                 imprimirTicketVenta(kdm1, listaPartidas)
+
+                // Intentar sincronizar en segundo plano por ahora se queda a envio manual desde el sincronizador
+               // sincronizarDocumentoKepler(idDoc)
 
                 finish()
 
@@ -503,6 +858,38 @@ class VentasActivity : AppCompatActivity() {
             arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_FINE_LOCATION)
         }
         requestBluetoothPermissionLauncher.launch(permissions)
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return when {
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+            else -> false
+        }
+    }
+
+    private fun sincronizarDocumentoKepler(iddoc: Long) {
+        if (!isNetworkAvailable()) {
+            Log.w("Ventas", "Sin conexión a internet. Sincronización pendiente.")
+            return
+        }
+
+        // Usamos GlobalScope para que la tarea sobreviva al cierre de la Activity (finish())
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val db = AppDatabase.getDatabase(applicationContext)
+                val catalogosManager = com.example.lacteos_flores.controllers.CatalogosManager(db)
+                val login = com.example.lacteos_flores.models.Login(usuario.toString(), pass.toString())
+                
+                catalogosManager.enviarVenta(iddoc, login)
+                Log.d("Ventas", "Sincronización exitosa en segundo plano para ID: $iddoc")
+            } catch (e: Exception) {
+                Log.e("Ventas", "Error al sincronizar en segundo plano: ${e.message}")
+            }
+        }
     }
 
     private fun imprimirTicketVenta(header: Kdm1Entity, partidas: List<ProductoUI>) {
@@ -538,20 +925,34 @@ class VentasActivity : AppCompatActivity() {
             printText(headerRow)
             printDivider()
 
+            val descuentoCliente = selectedClient?.descuentop?.toDoubleOrNull() ?: 0.0
+
             for (item in partidas) {
-                println("item${item.descripcion}")
+                val originalImporte = (item.cant ?: 0.0) * (item.costuni ?: 0.0)
+                val importeConDescuento = if (descuentoCliente > 0 && descuentoCliente < originalImporte) {
+                    originalImporte - descuentoCliente
+                } else {
+                    originalImporte
+                }
+
                 val line = String.format(Locale.US, "%-8s %-25s  %-5.1f %-9.2f %-10.2f\n",
                     item.cve?.take(8) ?: "",
                     item.descripcion ?: "",
                     item.cant ?: 0.0,
                     item.costuni ?: 0.0,
-                    (item.cant ?: 0.0) * (item.costuni ?: 0.0)
+                    importeConDescuento
                 )
                 printText(line)
-                // Descripción en la siguiente línea si existe
-                /*item.descripcion?.let {
-                    if (it.isNotEmpty()) printText("${it.take(32)}\n")
-                }*/
+                
+                // Imprimir atributos TMC si existen
+                val atributos = mutableListOf<String>()
+                if (item.talla != "-") atributos.add("T: ${item.talla}")
+                if (item.modelo != "-") atributos.add("M: ${item.modelo}")
+                if (item.color != "-") atributos.add("C: ${item.color}")
+                
+                if (atributos.isNotEmpty()) {
+                    printText("   ${atributos.joinToString(" ")}\n")
+                }
             }
             printDivider()
 

@@ -11,6 +11,7 @@ data class ubicacionRequest (
     @SerializedName("nomUser") val nom: String? = null,
     @SerializedName("latiFin") val lf: String? = null,
     @SerializedName("lonFin") val lof: String? = null,
-    @SerializedName("direFin") val diref: String? = null
+    @SerializedName("direFin") val diref: String? = null,
+    @SerializedName("fecha") val fecha: String? = null
 )
 

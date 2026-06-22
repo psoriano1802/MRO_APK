@@ -14,6 +14,9 @@ interface Kdm2Dao {
     @Query("SELECT * FROM kdm2_partidas WHERE iddoc = :id and  suc = :suc and alm = :alm and gen = :gen and nat = :nat and grp = :grp and tip = :tip ")
     suspend fun obtenerPartidasPorDocumento(id: Long, suc: String, alm: String, gen: String, nat: String, grp: String, tip: String): List<Kdm2Entity>
 
+    @Query("SELECT * FROM kdm2_partidas WHERE iddoc = :id")
+    suspend fun obtenerPartidas(id: Long): List<Kdm2Entity>
+
     @Query("SELECT * FROM kdm2_partidas ")
     suspend fun obtenerAllPartidas(): List<Kdm2Entity>
 

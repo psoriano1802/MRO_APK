@@ -6,10 +6,13 @@ import com.example.lacteos_flores.data.CarteraEntity
 import com.example.lacteos_flores.data.ClientsEntity
 import com.example.lacteos_flores.data.DoctosEntity
 import com.example.lacteos_flores.data.ExistenciaEntity
+import com.example.lacteos_flores.data.GastoRegistradoEntity
 import com.example.lacteos_flores.data.GastosEntity
 import com.example.lacteos_flores.data.ListaPreciosEntity
 import com.example.lacteos_flores.data.MonedaEntity
 import com.example.lacteos_flores.data.ProductosEntity
+import com.example.lacteos_flores.data.TallaAuxEntity
+import com.example.lacteos_flores.data.ModeloAuxEntity
 import com.example.lacteos_flores.interfaz.RetrofitClient
 import com.example.lacteos_flores.models.Login
 import com.example.lacteos_flores.models.LoginRequest
@@ -18,6 +21,7 @@ import com.example.lacteos_flores.models.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.google.gson.Gson
+import kotlin.math.log
 
 class CatalogosManager(private val db: AppDatabase) {
 
@@ -81,9 +85,16 @@ class CatalogosManager(private val db: AppDatabase) {
                 withContext(Dispatchers.Main) { onProgress("Sincronizando Productos...") }
                 sincronizarProductos(login, lista[0].toString()) // Tu función real aquí
                 withContext(Dispatchers.Main) { onProgress("✅ Productos actualizados") }
+                
+                // Sincronizar Tallas y Modelos junto con productos
+                withContext(Dispatchers.Main) { onProgress("Sincronizando Tallas...") }
+                sincronizarTallas(login)
+                withContext(Dispatchers.Main) { onProgress("Sincronizando Modelos...") }
+                sincronizarModelos(login)
+                
             } catch (e: Exception) {
                 totalErrores++
-                reporteErrores.add("Lista productos: ${e.message}")
+                reporteErrores.add("Productos/Tallas/Modelos: ${e.message}")
                 withContext(Dispatchers.Main) { onProgress("❌ Falló Productos") }
             }
             // ---------------------------------------------------------
@@ -91,7 +102,7 @@ class CatalogosManager(private val db: AppDatabase) {
             // ---------------------------------------------------------
             try {
                 withContext(Dispatchers.Main) { onProgress("Sincronizando Existencias...") }
-                sincronizarProductosExist(login) // Tu función real aquí
+                sincronizarProductosExist(existenciaReques(login,"15")) // Tu función real aquí
                 withContext(Dispatchers.Main) { onProgress("✅ Existencias actualizados") }
             } catch (e: Exception) {
                 totalErrores++
@@ -168,7 +179,7 @@ class CatalogosManager(private val db: AppDatabase) {
     // Tus funciones privadas (sincronizarDocumentos, etc.) se quedan exactamente igual
     // ya que ellas se encargan de lanzar las excepciones si algo sale mal con la red o el JSON.
     // Tu lógica original, ahora convertida en una función privada e independiente
-    private suspend fun sincronizarDocumentos(login: Login) {
+    suspend fun sincronizarDocumentos(login: Login) {
         val request = LoginRequest(login)
         val response = RetrofitClient.apiService.getDoctos(request)
 
@@ -209,9 +220,205 @@ class CatalogosManager(private val db: AppDatabase) {
                 throw Exception("El WS de Documentos no devolvió ok:1")
             }
         }
+        
+        // Sincronizar también ventas pendientes
+        enviarVentasPendientes(login)
     }
 
-    private suspend fun sincronizarBancos(login: Login) {
+    suspend fun enviarCobrosPendientes(login: Login) {
+        val pendientes = db.kdm1Dao().obtenerMovimientos().filter { it.staSinc == "N" && it.gen == "U" && it.nat == "A" && it.grp == "5" }
+        for (cobro in pendientes) {
+            enviarCobro(cobro.id, login)
+        }
+    }
+
+    suspend fun enviarVentasPendientes(login: Login) {
+        val pendientes = db.kdm1Dao().obtenerMovimientos().filter { it.staSinc == "N" && it.grp != "5" }
+        println("pendientes${pendientes.size}")
+        for (venta in pendientes) {
+            enviarVenta(venta.id, login)
+        }
+    }
+
+    suspend fun enviarVenta(iddoc: Long, login: Login) {
+        val doc = db.kdm1Dao().obtenerDocumentoPorId(iddoc) ?: return
+        val cliente = db.clientsDao().obtenerCliente(doc.cliente)
+        val partidas = db.kdm2Dao().obtenerPartidas(iddoc)
+        val auxiliares = db.itemAuxDao().obtenerAuxiliares(iddoc)
+
+        val itemsDocList = partidas.map { p ->
+            val auxList = auxiliares.filter { it.partida == p.partida && it.producto == p.producto }.map { a ->
+                val caduc= db.existenciasDao().obtenerLoteEspecifico(p.producto,a.auxiliar)
+                com.example.lacteos_flores.models.ItemsAuxiliar(
+                    serie = a.auxiliar,
+                    cant = a.cantidad,
+                    caduca = caduc?.fecha ?: "",
+                    talla = a.talla,
+                    modelo = a.modelo,
+                    color = a.color,
+                    ubicacion = "-"
+                )
+            }
+            com.example.lacteos_flores.models.ItemsDoc(
+                kparte = p.producto,
+                cant = p.cantidad,
+                descri = p.descrip,
+                uni = p.unidad,
+                precio = p.precio,
+                monto = p.importe,
+                coment = "",
+                iva = p.iva,
+                ieps = "0.0",
+                desc = "0",
+                itemAux = if (auxList.isNotEmpty()) auxList else null
+            )
+        }
+
+        val request = com.example.lacteos_flores.models.AltaDoctosRequest(
+            login = login,
+            rfcEmpresa = "PLF010228TC3",
+            suc = doc.suc,
+            alm = doc.alm,
+            gen = doc.gen,
+            nat = doc.nat,
+            grp = doc.grp,
+            tipo = doc.tip,
+            fecha = doc.fecha,
+            claveCliente = doc.cliente,
+            moneda = doc.moneda,
+            paridad = doc.pari,
+            rfcCliente = doc.rfc,
+            nombreCliente = cliente?.nombre ?: "",
+            ieps = "0.0",
+            iva = doc.iva,
+            refer = "-",
+            comenta = "",
+            monto = doc.monto,
+            plazo = "0",
+            vence = doc.venc,
+            cond = doc.condi,
+            agente = doc.agent,
+            lati = doc.lati,
+            longi = doc.long,
+            items = itemsDocList
+        )
+
+        //imprimimos el json enviado en el request
+        val jsonRequest = gson.toJson(request)
+        println("reques:$jsonRequest")
+        val response = RetrofitClient.apiService.sendDoctos(request)
+        if (response.isSuccessful) {
+            val body = response.body()
+            val result = body?.ResponseAlta?.firstOrNull()
+            //imprimimos el json enviado
+            println("result $result")
+            if (result?.ok == "1") {
+                db.kdm1Dao().actualizarSincronizacion(iddoc, "S", result.doc ?: result.folio)
+            } else {
+                throw Exception("Kepler Error: ${result?.msn}")
+            }
+        } else {
+            throw Exception("HTTP Error: ${response.code()}")
+        }
+    }
+
+    suspend fun enviarCobro(iddoc: Long, login: Login) {
+        val doc = db.kdm1Dao().obtenerDocumentoPorId(iddoc) ?: return
+        val partidas = db.kdm2cxcDao().obtenerPartidasPorDoc(iddoc)
+
+        val cobrosList = partidas.map { p ->
+            // Parsing folio string: UD0701-0000039
+            val doctoStr = p.doctoAfectado
+            val nat = if (doctoStr.isNotEmpty()) doctoStr[1].toString() else ""
+            val grp = doctoStr.substring(2,4)
+            val tip =doctoStr.substring(4,6)
+            val folio = if (doctoStr.contains("-")) doctoStr.substringAfter("-") else doctoStr
+
+            CobroItem(
+                vence = p.fecha, // Placeholder
+                refer = p.referencia.ifEmpty { "-" },
+                iva = "0.0", // Placeholder
+                docto = p.doctoAfectado,
+                saldom = p.saldoAnt,
+                descr = p.descri,
+                montoOrig = p.montoDocto,
+                saldo = p.saldoAnt,
+                monto = p.abono,
+                nat = nat,
+                grp = grp,
+                tipo = tip,
+                folio = folio,
+                fecha = p.fecha
+            )
+        }
+
+        val request = AltaDoctosRequest(
+            login = login,
+            suc = doc.suc,
+            alm = doc.alm,
+            gen = doc.gen,
+            nat = doc.nat,
+            grp = doc.grp,
+            tipo = doc.tip,
+            fecha = doc.fecha,
+            moneda = doc.moneda,
+            paridad = doc.pari,
+            comenta = "-",
+            monto = doc.monto,
+            agente = doc.agent,
+            cobros = cobrosList,
+            rfcCliente = doc.rfc,
+            claveCliente = doc.cliente,
+            items = null
+        )
+
+        val jsonRequest = gson.toJson(request)
+        println("DEBUG ENVIAR COBRO REQUEST: $jsonRequest")
+        val response = RetrofitClient.apiService.sendDoctos(request)
+        if (response.isSuccessful) {
+            val body = response.body()
+            println("DEBUG ENVIAR COBRO RESPONSE: ${gson.toJson(body)}")
+            val result = body?.ResponseAlta?.firstOrNull()
+            if (result?.ok == "1") {
+                db.kdm1Dao().actualizarSincronizacion(iddoc, "S", result.doc ?: result.folio)
+            } else {
+                throw Exception("Kepler Error: Documento no Creado!")
+            }
+        } else {
+            throw Exception("HTTP Error: ${response.code()}")
+        }
+    }
+
+    suspend fun enviarGasto(gasto: GastoRegistradoEntity, login: Login) {
+        val request = AltaGastoRequest(
+            login = login,
+            rfc = "PLF010228TC3",
+            vendedor = gasto.usuario,
+            gasto = gasto.tipoGasto, // Debería ser la clave
+            monto = gasto.monto.toString(),
+            observaciones = gasto.comentario
+        )
+
+        val jsonRequest = gson.toJson(request)
+        println("DEBUG ENVIAR GASTO REQUEST: $jsonRequest")
+        val response = RetrofitClient.apiService.sendAltaGasto(request)
+        if (response.isSuccessful) {
+            val body = response.body()
+            println("DEBUG ENVIAR GASTO RESPONSE: ${gson.toJson(body)}")
+            val result = body?.Registra_GastosResponse?.firstOrNull()
+            println("result:"+result)
+            if (result?.ok == "1") {
+                db.gastoRegistradoDao().marcarComoSincronizado(gasto.id)
+            } else {
+                throw Exception("Kepler Error")
+
+            }
+        } else {
+            throw Exception("HTTP Error: ${response.code()}")
+        }
+    }
+
+    suspend fun sincronizarBancos(login: Login) {
         // ... Aquí clonas la lógica adaptada para tu catálogo de bancos ...
         val request = LoginRequest(login)
         val response = RetrofitClient.apiService.getBancos(request)
@@ -249,7 +456,7 @@ class CatalogosManager(private val db: AppDatabase) {
         }
     }
 
-    private suspend fun sincronizarGastos(login: Login) {
+    suspend fun sincronizarGastos(login: Login) {
         // ... Aquí clonas la lógica adaptada para tu catálogo de bancos ...
         val request = LoginRequest(login)
         val response = RetrofitClient.apiService.getGastos(request)
@@ -285,10 +492,20 @@ class CatalogosManager(private val db: AppDatabase) {
                 throw Exception("El WS de bancos no devolvió ok:1")
             }
         }
+        
+        // Sincronizar también gastos registrados pendientes
+        enviarGastosPendientes(login)
+    }
+
+    suspend fun enviarGastosPendientes(login: Login) {
+        val pendientes = db.gastoRegistradoDao().obtenerGastosPendientes()
+        for (gasto in pendientes) {
+            enviarGasto(gasto, login)
+        }
     }
 
     //sincronizarProductos
-    private suspend fun sincronizarProductos(login: Login, lista: String) {
+    suspend fun sincronizarProductos(login: Login, lista: String) {
         // ... Aquí clonas la lógica adaptada para tu catálogo de bancos ...
         val request = ProductosRequest(login, lista)
         val response = RetrofitClient.apiService.getProductos(request)
@@ -336,6 +553,11 @@ class CatalogosManager(private val db: AppDatabase) {
 
                 db.productosDao().eliminarTodo()
                 db.productosDao().insertarProductos(listaParaGuardar)
+                
+                // También sincronizamos Tallas y Modelos aquí para las llamadas individuales desde el botón Productos
+                sincronizarTallas(login)
+                sincronizarModelos(login)
+
             } else {
                 throw Exception("El WS de bancos no devolvió ok:1")
             }
@@ -343,19 +565,19 @@ class CatalogosManager(private val db: AppDatabase) {
     }
 
     //existencias sin control auxiliar
-    private suspend fun sincronizarProductosExist(login: Login) {
+    suspend fun sincronizarProductosExist(login: existenciaReques) {
         // ... Aquí clonas la lógica adaptada para tu catálogo de bancos ...
-        val request = LoginRequest(login)
+        val request = login
+        val jsonEnviado = gson.toJson(request)
+        println("DEBUG PRODUCTOS EXIST REQUEST: $jsonEnviado")
         val response = RetrofitClient.apiService.getExistencias(request)
-        val jsonEnviado = Gson().toJson(request)
-        println("DEBUG JSON ENVIADO existencas: $jsonEnviado")
-        println("DEBUG RESPONSE existencias: $response")
         if (!response.isSuccessful) {
             throw Exception("Error servidor existencias: ${response.code()}")
         }
 
-        val listaRaw =
-            response.body()?.ResponseExistencia ?: throw Exception("Respuesta vacía de Existencias")
+        val body = response.body()
+        println("DEBUG PRODUCTOS EXIST RESPONSE: ${gson.toJson(body)}")
+        val listaRaw = body?.ResponseExistencia ?: throw Exception("Respuesta vacía de Existencias")
 
         if (listaRaw.size > 1) {
             val primerObjeto = gson.toJson(listaRaw[0])
@@ -366,23 +588,65 @@ class CatalogosManager(private val db: AppDatabase) {
                 for (i in 1 until listaRaw.size) {
                     val jsonElement = gson.toJsonTree(listaRaw[i])
                     val prod = gson.fromJson(jsonElement, existencia::class.java)
-
-                    listaParaGuardar.add(
-                        ExistenciaEntity(
-                            clave = prod.cve.toString(),
-                            auxiliar = prod.aux.toString(),
-                            existencias = prod.exist.toString(),
-                            fecha = prod.fec.toString()
+    
+                    
+                    if (login.tip == "16"){
+                        // Actualiza o inserta nueva existencia (Upsert)
+                        println("tipo de documento:${login.tip}")
+                        db.existenciasDao().actualizarExistAux(prod.cve.toString(),prod.aux.toString(),prod.exist.toString(),prod.talla.toString(),prod.modelo.toString(),prod.color.toString())
+                    }else {
+                        listaParaGuardar.add(
+                            ExistenciaEntity(
+                                clave = prod.cve.toString(),
+                                auxiliar = prod.aux.toString(),
+                                existencias = prod.exist.toString(),
+                                fecha = prod.fec.toString(),
+                                talla = prod.talla ?: "-",
+                                modelo = prod.modelo ?: "-",
+                                color = prod.color ?: "-"
+                            )
                         )
-                    )
+                    }
+
+                }
+               
+                if(login.tip == "15"){
+                    println("tipo de documento:${login.tip}")
+                    db.existenciasDao().eliminarTodo()
+                    db.existenciasDao().insertarExistencias(listaParaGuardar)
                 }
 
-                db.existenciasDao().eliminarTodo()
-                db.existenciasDao().insertarExistencias(listaParaGuardar)
+
             } else {
                 throw Exception("El WS de existencias no devolvió ok:1")
             }
         }
+    }
+
+    suspend fun sincronizarNuevaExistencia(login: Login) {
+        // 1. Valida Recarga
+        /*val requestValida = LoginRequest(login)
+        val jsonRequestValida = gson.toJson(requestValida)
+        println("DEBUG VALIDA RECARGA REQUEST: $jsonRequestValida")
+        val responseValida = RetrofitClient.apiService.validaRecarga(requestValida)
+        if (!responseValida.isSuccessful) {
+            throw Exception("Error servidor ValidaRecarga: ${responseValida.code()}")
+        }
+        val bodyValida = responseValida.body()
+        println("DEBUG VALIDA RECARGA RESPONSE: ${gson.toJson(bodyValida)}")
+        val resultValida = bodyValida?.ValidaRecargaResponse?.firstOrNull()
+        if (resultValida?.ok != "1") {
+            throw Exception("Error ValidaRecarga: ${resultValida?.msn}")
+        }*/
+
+        // 2. Enviar movimientos pendientes (ventas, cobros, gastos)
+        // Usamos las funciones que ahora lanzan excepciones
+        //enviarVentasPendientes(login)
+        //enviarCobrosPendientes(login)
+        //enviarGastosPendientes(login)
+
+        // 3. Sincronizar Existencias (Tipo "16" como ejemplo de uso previo)
+        sincronizarProductosExist(existenciaReques(login, "16"))
     }
 
     //existencias control auxiliar validar si usar para las recargas o no utilizarlo
@@ -410,7 +674,11 @@ class CatalogosManager(private val db: AppDatabase) {
                     listaParaGuardar.add(ExistenciaEntity(
                         clave = prod.cve.toString(),
                         auxiliar = prod.aux.toString(),
-                        existencias = prod.exist.toString()
+                        existencias = prod.exist.toString(),
+                        fecha = prod.fec.toString(),
+                        talla = prod.talla ?: "-",
+                        modelo = prod.modelo ?: "-",
+                        color = prod.color ?: "-"
                     ))
                 }
 
@@ -423,7 +691,7 @@ class CatalogosManager(private val db: AppDatabase) {
     }*/
 
     //sincronizarListaPrecios
-    private suspend fun sincronizarListaPrecios(login: Login) {
+    suspend fun sincronizarListaPrecios(login: Login) {
         // ... Aquí clonas la lógica adaptada para tu catálogo de bancos ...
         val request = LoginRequest(login)
         val response = RetrofitClient.apiService.getListaProd(request)
@@ -469,7 +737,7 @@ class CatalogosManager(private val db: AppDatabase) {
         }
     }
     //sincronizacion de clientes
-    private suspend fun sincronizarClientes(login: Login) {
+    suspend fun sincronizarClientes(login: Login) {
         // ... Aquí clonas la lógica adaptada para tu catálogo de bancos ...
         val request = LoginRequest(login)
         val response = RetrofitClient.apiService.getClientes(request)
@@ -539,7 +807,7 @@ class CatalogosManager(private val db: AppDatabase) {
         }
     }
     //monedas
-    private suspend fun sincronizarMonedas(login: Login) {
+    suspend fun sincronizarMonedas(login: Login) {
         // ... Aquí clonas la lógica adaptada para tu catálogo de bancos ...
         val request = LoginRequest(login)
         val response = RetrofitClient.apiService.getParidades(request)
@@ -575,7 +843,7 @@ class CatalogosManager(private val db: AppDatabase) {
             }
         }
     }
-    private suspend fun sincronizarCartera(login: Login) {
+    suspend fun sincronizarCartera(login: Login) {
         val request = LoginRequest(login)
         val response = RetrofitClient.apiService.getCartera(request)
 
@@ -616,6 +884,108 @@ class CatalogosManager(private val db: AppDatabase) {
                 db.carteraDao().insertaCartera(listaParaGuardar)
             } else {
                 throw Exception("El WS de Documentos no devolvió ok:1")
+            }
+        }
+    }
+
+    suspend fun enviarTodoYLimpiar(login: Login): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                // 1. Enviar Ventas, Devoluciones y Descargas
+                val movimientos = db.kdm1Dao().obtenerMovimientos().filter { it.staSinc == "N" }
+                for (doc in movimientos) {
+                    // Diferenciamos Cobros de Ventas/Dev/Desc
+                    if (doc.gen == "U" && doc.nat == "A" && doc.grp == "5") {
+                        enviarCobro(doc.id, login)
+                    } else {
+                        enviarVenta(doc.id, login)
+                    }
+                }
+
+                // 2. Enviar Gastos
+                val pendientesGastos = db.gastoRegistradoDao().obtenerGastosPendientes()
+                for (gasto in pendientesGastos) {
+                    enviarGasto(gasto, login)
+                }
+
+                // 3. Limpiar tablas locales
+                limpiarTablasLocales()
+                true
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+        }
+    }
+
+    private suspend fun limpiarTablasLocales() {
+        db.kdm1Dao().eliminarTodoMovimiento()
+        db.kdm2Dao().eliminarTodoKdm2()
+        db.gastoRegistradoDao().eliminarTodoGastosRegistrados()
+        db.kdm2cxcDao().eliminarTodoKdm2cxc()
+        db.carteraDao().eliminarTodo()
+        db.existenciasDao().eliminarTodo()
+        db.itemAuxDao().eliminarTodoItemAux()
+    }
+
+    suspend fun sincronizarTallas(login: Login) {
+        val request = CatTmcRequest(login, "KDIS7")
+        val response = RetrofitClient.apiService.getCatTmc(request)
+
+        if (!response.isSuccessful) {
+            throw Exception("Error servidor Tallas: ${response.code()}")
+        }
+
+        val listaRaw = response.body()?.responseCatTmc ?: throw Exception("Respuesta vacía de Tallas")
+
+        if (listaRaw.size > 1) {
+            val primerObjeto = listaRaw[0]
+            if (primerObjeto["ok"] == "1") {
+                val listaParaGuardar = mutableListOf<TallaAuxEntity>()
+                for (i in 1 until listaRaw.size) {
+                    val item = listaRaw[i]
+                    listaParaGuardar.add(
+                        TallaAuxEntity(
+                            clave = item["Clave"] ?: "",
+                            descripcion = item["Descripcion"] ?: ""
+                        )
+                    )
+                }
+                db.tmcDao().eliminarTallas()
+                db.tmcDao().insertarTallas(listaParaGuardar)
+            } else {
+                throw Exception("El WS de Tallas no devolvió ok:1")
+            }
+        }
+    }
+
+    suspend fun sincronizarModelos(login: Login) {
+        val request = CatTmcRequest(login, "KDIS8")
+        val response = RetrofitClient.apiService.getCatTmc(request)
+
+        if (!response.isSuccessful) {
+            throw Exception("Error servidor Modelos: ${response.code()}")
+        }
+
+        val listaRaw = response.body()?.responseCatTmc ?: throw Exception("Respuesta vacía de Modelos")
+
+        if (listaRaw.size > 1) {
+            val primerObjeto = listaRaw[0]
+            if (primerObjeto["ok"] == "1") {
+                val listaParaGuardar = mutableListOf<ModeloAuxEntity>()
+                for (i in 1 until listaRaw.size) {
+                    val item = listaRaw[i]
+                    listaParaGuardar.add(
+                        ModeloAuxEntity(
+                            clave = item["Clave"] ?: "",
+                            descripcion = item["Descripcion"] ?: ""
+                        )
+                    )
+                }
+                db.tmcDao().eliminarModelos()
+                db.tmcDao().insertarModelos(listaParaGuardar)
+            } else {
+                throw Exception("El WS de Modelos no devolvió ok:1")
             }
         }
     }

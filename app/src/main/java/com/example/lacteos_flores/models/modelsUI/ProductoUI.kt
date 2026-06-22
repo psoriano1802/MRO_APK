@@ -1,4 +1,13 @@
 package com.example.lacteos_flores.models.modelsUI
+
+data class LoteDetalle(
+    val lote: String,
+    var cantidad: Double,
+    var talla: String = "-",
+    var modelo: String = "-",
+    var color: String = "-"
+)
+
 data class ProductoUI(
     val cve: String? = null,
     var cant: Double? = null,
@@ -8,5 +17,10 @@ data class ProductoUI(
     val descripcion: String? = null,
     val minutos: Double? = null,
     val horas: Double? = null,
-    var lote: String? = null
+    var lote: String? = null,
+    var talla: String = "-",
+    var modelo: String = "-",
+    var color: String = "-",
+    var tmc: String? = "0",
+    var desgloseLotes: MutableList<LoteDetalle> = mutableListOf()
 )

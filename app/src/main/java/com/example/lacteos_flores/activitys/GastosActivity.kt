@@ -2,23 +2,30 @@ package com.example.lacteos_flores.activitys
 import android.app.DatePickerDialog
 import com.example.lacteos_flores.R
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.lacteos_flores.adapters.GastosAdapter
 import com.example.lacteos_flores.adapters.RefaccionesAdapter
+import com.example.lacteos_flores.data.AppDatabase
+import com.example.lacteos_flores.data.GastoRegistradoEntity
 import com.example.lacteos_flores.interfaz.RetrofitClient
 import com.example.lacteos_flores.models.AltaDoctosRequest
 import com.example.lacteos_flores.models.Login
 import com.example.lacteos_flores.models.OrdenItem
-import com.example.lacteos_flores.models.itemsDoc
 import com.example.lacteos_flores.models.modelsUI.GastosUI
 import com.example.lacteos_flores.models.modelsUI.ProductoUI
 import com.example.lacteos_flores.utils.BusquedaRMBottomSheet
@@ -26,9 +33,11 @@ import com.example.lacteos_flores.utils.Globales.showToast
 import com.example.lacteos_flores.utils.Prefs
 import com.example.lacteos_flores.utils.ReportePDFGenerator
 import com.example.lacteos_flores.utils.ReportePDFGenerator2
+import com.example.lacteos_flores.utils.TicketPrinter
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 
 class GastosActivity : AppCompatActivity() {
 
@@ -56,6 +65,20 @@ class GastosActivity : AppCompatActivity() {
     private lateinit var reporteGenerator: ReportePDFGenerator
     private lateinit var reportePDFGenerator2: ReportePDFGenerator2
     private lateinit var gastosAdapter: GastosAdapter
+    private lateinit var db: AppDatabase
+    private var catalogoGastos: List<com.example.lacteos_flores.data.GastosEntity> = listOf()
+
+    // Launcher para permisos de Bluetooth
+    private val requestBluetoothPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions.entries.all { it.value }
+        if (granted) {
+            Toast.makeText(this, "Permisos concedidos. Intente de nuevo.", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Se requieren permisos de Bluetooth para imprimir.", Toast.LENGTH_LONG).show()
+        }
+    }
 
     //parametros recibidos
     var sucursalDoc: String? = null
@@ -93,11 +116,9 @@ class GastosActivity : AppCompatActivity() {
         btnGuardar = findViewById(R.id.btn_guardar)
         btnAddGasto = findViewById(R.id.btn_agregar_gasto)
 
-        // Configurar Spinner con datos de ejemplo
-        val opcionesGastos = listOf("Combustible", "Mantenimiento", "Viáticos", "Otros")
-        val adapterSpinner = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, opcionesGastos)
-        adapterSpinner.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spGasto.adapter = adapterSpinner
+        // Configurar Spinner desde la base de datos
+        db = AppDatabase.getDatabase(this)
+        cargarCatalogoGastos()
 
         // Recyclerview
         gastosAdapter = GastosAdapter(mutableListOf())
@@ -106,6 +127,7 @@ class GastosActivity : AppCompatActivity() {
 
         reporteGenerator = ReportePDFGenerator(this)
         reportePDFGenerator2 = ReportePDFGenerator2(this)
+        db = AppDatabase.getDatabase(this)
 
         // Obtenemos los datos del usuario
         usuario = Prefs(this).obtenerUsuario().first.toString()
@@ -123,7 +145,15 @@ class GastosActivity : AppCompatActivity() {
 
         //boton para agregar gastos a la lista
         btnAddGasto.setOnClickListener {
-            val tipoGasto = spGasto.selectedItem.toString()
+            val position = spGasto.selectedItemPosition
+            if (position < 0 || position >= catalogoGastos.size) {
+                showToast(this, "Seleccione un tipo de gasto válido")
+                return@setOnClickListener
+            }
+            
+            val gastoSeleccionado = catalogoGastos[position]
+            val tipoGastoClave = gastoSeleccionado.clave
+            
             val montoStr = etMonto.text.toString()
             val comentario = etComentarios.text.toString()
 
@@ -134,14 +164,17 @@ class GastosActivity : AppCompatActivity() {
 
             val monto = montoStr.toDoubleOrNull() ?: 0.0
 
-            // Creamos un GastosUI para representar el gasto
+            // Creamos un GastosUI para representar el gasto (mostramos la descripción al usuario)
             val nuevoGasto = GastosUI(
-                tipoGasto = tipoGasto,
+                tipoGasto = tipoGastoClave, // Guardamos la CLAVE para enviarla al WS
                 monto = monto,
                 comentario = comentario,
                 fecha = tvFecha.text.toString()
             )
 
+            // Si quieres mostrar la descripción en el RecyclerView, podrías necesitar ajustar el adapter 
+            // o simplemente guardar la clave aquí y dejar que el adapter la muestre (o pasar la descripción)
+            // Por simplicidad en el envío, guardamos la clave.
             gastosAdapter.agregarGasto(nuevoGasto)
             limpiarCampos()
         }
@@ -186,89 +219,85 @@ class GastosActivity : AppCompatActivity() {
     }
     //funcion para enviar datos al servidor para generar la solicitud de refaccion
     private fun enviaSolicitud(){
-        // Aquí puedes implementar la lógica para guardar los datos
+        // Verificar permisos antes de registrar para poder imprimir el ticket
+        if (!tienePermisosBluetooth()) {
+            solicitarPermisosBluetooth()
+            return
+        }
+
+        val lista = gastosAdapter.obtenerLista()
         lifecycleScope.launch {
             try {
+                val userEntity = db.usuarioDao().obtenerUsuario(usuario ?: "")
+                
+                // 1. Guardar localmente
+                val gastosEntidades = lista.map { ui ->
+                    GastoRegistradoEntity(
+                        tipoGasto = ui.tipoGasto ?: "",
+                        monto = ui.monto ?: 0.0,
+                        comentario = ui.comentario ?: "",
+                        fecha = ui.fecha ?: "",
+                        usuario = usuario ?: "",
+                        sucursal = userEntity?.cve_suc,
+                        almacen = userEntity?.cve_alma,
+                        sincronizado = false
+                    )
+                }
+                
+                db.gastoRegistradoDao().insertarGastos(gastosEntidades)
+                showToast(this@GastosActivity, "Gastos guardados localmente")
+                
+                // 3. Imprimir Ticket
+                imprimirTicketGasto(gastosEntidades)
+
+                // 2. Intentar sincronizar en segundo plano
+                // por ahora se queda a envio manual desde el sincronizador
+                //sincronizarGastosKepler()
+                
+                // Limpiar lista y cerrar o notificar
+                gastosAdapter.limpiarLista()
+                finish()
 
             }catch (e: Exception){
                 System.out.println("error:"+e)
                 Toast.makeText(this@GastosActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
-
     }
 
-    //nuevafuncion para generarel reporte simpl
-    private fun generaReporte(folio: String, datos: AltaDoctosRequest){
-        val partidas = mutableListOf<ReportePDFGenerator2.Partida>()
-        var count = 1
-        for (item in datos.items!!){
+    private fun sincronizarGastosKepler() {
+        val connectivityManager = getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val network = connectivityManager.activeNetwork
+        val capabilities = connectivityManager.getNetworkCapabilities(network)
+        val isOnline = capabilities?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
 
-            var cve = item.kparte
-            var cant = item.cant
-            var uni = item.uni
-            var descr =item.descri
-            var importe = item.monto
-            val precio = item.precio
-            val partida = ReportePDFGenerator2.Partida(count.toString(),descr,cant,uni,"$precio","$importe")
-            partidas.add(partida)
-            count ++
+        if (!isOnline) {
+            Log.w("Gastos", "Sin conexión. Sincronización pendiente.")
+            return
         }
-        System.out.println("partidas:"+partidas)
-        val archivo =reportePDFGenerator2.generarArchivoConPartidas(
-            sucursal = datos.suc,
-            almacen = datos.alm,
-            usuario = usuario.toString(),
-            folio = folio,
-            fecha = datos.fecha.toString(),
-            activo = datos.proyecto.toString(),
-            nameActivo = namActivo.toString(),
-            partidas = partidas,
-            comentarios = datos.comenta,
-            name = "SOLICITUD DE REFACCIONES"
-        )
-        if (archivo != null) {
-            showToast(this@GastosActivity,"Archivo PDF guardado en :${archivo.absolutePath}")
+
+        // Usar GlobalScope para que sobreviva al finish()
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val dbLocal = AppDatabase.getDatabase(applicationContext)
+                val pendientes = dbLocal.gastoRegistradoDao().obtenerGastosPendientes()
+                val catalogosManager = com.example.lacteos_flores.controllers.CatalogosManager(dbLocal)
+                val login = Login(usuario.toString(), pass.toString())
+                
+                for (gasto in pendientes) {
+                    try {
+                        catalogosManager.enviarGasto(gasto, login)
+                    } catch (e: Exception) {
+                        Log.e("Gastos", "Error enviando gasto ${gasto.id}: ${e.message}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("Gastos", "Error en sincronización: ${e.message}")
+            }
         }
     }
-    //funcion con distrubucion en formato
-    fun generaReporte2(){
-        val partidas = listOf(
-            ReportePDFGenerator2.Partida("1", "Bujía NGK CR7E", "2", "pza", "$85.00", "$170.00"),
-            ReportePDFGenerator2.Partida("2", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("3", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("4", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("5", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("6", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("7", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("8", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("9", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("10", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("11", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("12", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("13", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("14", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("15", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("16", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00"),
-            ReportePDFGenerator2.Partida("17", "Aceite motor 10W-40", "1", "lto", "$120.00", "$120.00")
-        )
 
-        val archivo = reportePDFGenerator2.generarArchivoConPartidas(
-            sucursal = "MRO",
-            almacen = "08",
-            usuario = "GRJ",
-            folio = "25/09/2025 - 16:18",
-            fecha = "25/09/2025",
-            activo = "C-010",
-            nameActivo = "CUATRIMOTO ITALIKA ATV 200 - ALIMENTACION",
-            partidas = partidas,
-            comentarios = "Sin comentarios",
-            name = "SOLICITUD DE REFACCIONES"
-        )
-        if (archivo != null) {
-            showToast(this@GastosActivity,"Archivo PDF guardado en :${archivo.absolutePath}")
-        }
-    }
+
     //limpiar campos
     private fun limpiarCampos(){
 
@@ -276,5 +305,94 @@ class GastosActivity : AppCompatActivity() {
         etComentarios.setText("")
         etMonto.setText("")
 
+    }
+
+    private fun tienePermisosBluetooth(): Boolean {
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        return permissions.all {
+            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun solicitarPermisosBluetooth() {
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        requestBluetoothPermissionLauncher.launch(permissions)
+    }
+
+    private fun imprimirTicketGasto(gastos: List<GastoRegistradoEntity>) {
+        val printer = TicketPrinter(this)
+        printer.connectAndPrint("Printer001") {
+            setAlignCenter()
+            setBold(true)
+            setLargeFont(false)
+            printText("PRODUCTOS LACTEOS FLORES\n")
+
+            setLargeFont(false)
+            setBold(false)
+            printText("R.F.C.: PLF010228TC3\n")
+            printText("Calle: NICOLAS BRAVO\n")
+            printText("Colonia: CENTRO\n")
+            printText("Municipio: JIQUILPAN\n")
+            printText("Telefono: 3535330998\n")
+            printText("\n")
+            printText("COMPROBANTE DE GASTO\n")
+            printText("Fecha: ${tvFecha.text}\n")
+            printDivider()
+
+            setAlignLeft()
+            printText("Usuario: $usuario\n")
+            printDivider()
+
+            // Formato: TIPO(10) MONTO(10)
+            val headerRow = String.format(Locale.US, "%-15s %15s\n", "Tipo", "Monto")
+            printText(headerRow)
+            printDivider()
+
+            var total = 0.0
+            for (gasto in gastos) {
+                val line = String.format(Locale.US, "%-15s %15.2f\n",
+                    gasto.tipoGasto.take(15),
+                    gasto.monto
+                )
+                printText(line)
+                if (gasto.comentario.isNotEmpty()) {
+                    printText("Obs: ${gasto.comentario}\n")
+                }
+                total += gasto.monto
+            }
+            printDivider()
+
+            setAlignRight()
+            setBold(true)
+            printText("TOTAL GASTOS: $ ${String.format(Locale.US, "%.2f", total)}\n")
+            setBold(false)
+
+            setAlignCenter()
+            printText("\nFirma del Responsable\n\n\n")
+            printText("______________________\n")
+            printText("\n¡Registro de Control Interno!\n")
+        }
+    }
+
+    private fun cargarCatalogoGastos() {
+        lifecycleScope.launch {
+            try {
+                catalogoGastos = db.gastosDao().obtenerTodosGastos()
+                val descripciones = catalogoGastos.map { it.descripcion }
+                val adapterSpinner = android.widget.ArrayAdapter(this@GastosActivity, android.R.layout.simple_spinner_item, descripciones)
+                adapterSpinner.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                spGasto.adapter = adapterSpinner
+            } catch (e: Exception) {
+                Log.e("Gastos", "Error cargando catálogo: ${e.message}")
+            }
+        }
     }
 }
