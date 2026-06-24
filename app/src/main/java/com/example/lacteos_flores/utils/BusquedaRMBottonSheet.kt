@@ -131,15 +131,15 @@ class BusquedaRMBottomSheet(
 
         if(tipobusqueda =="1" || esDevolucion){
             binding.etPrecio.isEnabled = false // Siempre bloqueado
-            binding.etCantidad.isEnabled = true
-            binding.etPrecio.visibility = if (esDevolucion) View.GONE else View.VISIBLE
+            binding.etCantidad.isEnabled = false
+            //binding.etPrecio.visibility = if (esDevolucion) View.GONE else View.VISIBLE
         } else {
             binding.etCantidad.isEnabled = false
         }
 
         binding.btnBuscar.setOnClickListener {
             val texto = binding.etBusqueda.text.toString()
-            if (texto.length < 3) {
+            if (texto.length < 0) {
                 binding.etBusqueda.error = "Mínimo 3 caracteres"
                 return@setOnClickListener
             }
@@ -207,10 +207,12 @@ class BusquedaRMBottomSheet(
                 }
 
                 val listaProductosUI = prod.map {
+                    val precio = it.precio1.toDoubleOrNull() ?: 0.0
                     ProductoUI(
                         cve = it.clave,
                         uni = it.unidad,
-                        costuni = it.precio1.toDoubleOrNull() ?: 0.0,
+                        costuni = precio,
+                        costbase = precio, // Guardamos el precio base original del catálogo
                         descripcion = it.descripcion,
                         tmc = it.tmc
                     )

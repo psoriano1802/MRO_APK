@@ -14,8 +14,13 @@ import com.example.lacteos_flores.data.AppDatabase
 import com.example.lacteos_flores.databinding.ActivityMainBinding
 import com.example.lacteos_flores.utils.Prefs
 import com.example.lacteos_flores.viewmodels.MenuViewModel
+import com.example.lacteos_flores.interfaz.RetrofitClient
+import com.example.lacteos_flores.models.Login
+import com.example.lacteos_flores.models.LoginRequest
+import com.example.lacteos_flores.models.Validadia
+import java.text.SimpleDateFormat
+import java.util.Locale
 import kotlinx.coroutines.launch
-import kotlin.jvm.java
 
 
 class MainActivity : AppCompatActivity() {
@@ -24,6 +29,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewModel: MenuViewModel
 
     private lateinit var db: AppDatabase
+    private var usuario: String? = null
+    private var pass: String? = null
+    private var esJornadaActiva = false
+    private var esJornadaFinalizada = false
+
     private val allitems = listOf(
         MenuOptions("Jornada", R.drawable.ic_inventory,"JORNADA", JornadaActivity::class.java), //registra el inicio de labores y cargalos datos iniciales, catlogos y si hay cargas iniciales
         MenuOptions("Ventas", R.drawable.ic_orders,"VENTAS", VentasActivity::class.java), //registra el fin de laboresy termina el dia, no permite abrir dia hasta el dia siguiente
@@ -44,18 +54,17 @@ class MainActivity : AppCompatActivity() {
         //abrimos la bd para poder consultar las existencias
         //inicializamos la base de datos
         db = AppDatabase.getDatabase(this)
-        val userAct = Prefs(this).obtenerUsuario().first
-       // System.out.println("userAct:"+userAct)
-        //viewModel.obtenerPantallasPermitidas(userAct).observe(this) { pantallas ->
-       //     val permitidas = pantallas.map { it.pantalla }
-            val visibles= allitems
+        val userData = Prefs(this).obtenerUsuario()
+        usuario = userData.first
+        pass = userData.second
 
-            val adapter = MenuAdapter(visibles){ accion ->
-                /*val intent = Intent(this, accion)
-                startActivity(intent)*/
-                // Aquí recibimos el clic y validamos
-                validarExistenciasYProceder(accion)
-            }
+        validarEstadoJornada()
+
+        val visibles= allitems
+
+        val adapter = MenuAdapter(visibles){ accion ->
+            validarJornadaYProceder(accion)
+        }
             binding.recyclerViewMenu.layoutManager = GridLayoutManager(this, 2)
             binding.recyclerViewMenu.adapter = adapter
 
@@ -65,28 +74,86 @@ class MainActivity : AppCompatActivity() {
         //}
 
     }
-    private fun validarExistenciasYProceder(clase: Class<out AppCompatActivity>) {
-        val prefs = Prefs(this)
-        if (!prefs.isJornadaActiva() && clase != JornadaActivity::class.java) {
-            Toast.makeText(this, "Debe iniciar una jornada para acceder a esta opción.", Toast.LENGTH_LONG).show()
+
+    private fun validarEstadoJornada() {
+        lifecycleScope.launch {
+            try {
+                val login = Login(usuario.toString(), pass.toString())
+                val response = RetrofitClient.apiService.validaDia(LoginRequest(login))
+                if (response.isSuccessful) {
+                    val validaDia = response.body()?.ValidaDiaResponse?.getOrNull(0)
+                    if (validaDia != null) {
+                        procesarValidacion(validaDia)
+                    }
+                }
+            } catch (e: Exception) {
+                // Silencioso o log en consola para no interrumpir el flujo principal del menú
+                System.out.println("Error al validar jornada: ${e.message}")
+            }
+        }
+    }
+
+    private fun procesarValidacion(valida: Validadia) {
+        val fechaInicioStr = valida.fecini
+        val fechaTerminaStr = valida.fecter
+
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val fechaHoy = sdf.format(System.currentTimeMillis())
+
+        if (fechaInicioStr == null || fechaInicioStr == "-") {
+            println("primer if")
+            esJornadaActiva = false
+            esJornadaFinalizada = false
+        } else if (fechaTerminaStr == null || fechaTerminaStr == "-") {
+            println("aegundo if")
+            esJornadaActiva = true
+            esJornadaFinalizada = false
+        } else {
+            println("tercer if")
+            val soloFechaTermina = fechaTerminaStr.split(" ")[0]
+            if (soloFechaTermina == fechaHoy) {
+                esJornadaActiva = false
+                esJornadaFinalizada = true
+            } else {
+                esJornadaActiva = false
+                esJornadaFinalizada = false
+            }
+        }
+    }
+
+    private fun validarJornadaYProceder(clase: Class<out AppCompatActivity>) {
+        if (clase == JornadaActivity::class.java) {
+            startActivity(Intent(this, clase))
             return
         }
 
-        lifecycleScope.launch {
-            // Consultamos el total de existencias
-            val totalExistencia = db.existenciasDao().obtenerTodasExistencias()
-
-            // Solo validamos si intenta entrar a VentasActivity
-            if (clase == VentasActivity::class.java && totalExistencia <= 0) {
-                Toast.makeText(this@MainActivity,
-                    "No puedes continuar: No hay existencias en almacén. Sincroniza primero.",
-                    Toast.LENGTH_LONG).show()
-            } else {
-                // Si es otra pantalla o hay existencias, permitimos el paso
-                val intent = Intent(this@MainActivity, clase)
-                startActivity(intent)
+        when {
+            esJornadaFinalizada -> {
+                Toast.makeText(this, "La jornada de hoy ya ha sido finalizada.", Toast.LENGTH_LONG).show()
+            }
+            !esJornadaActiva -> {
+                Toast.makeText(this, "Debes iniciar la jornada antes de realizar operaciones.", Toast.LENGTH_LONG).show()
+            }
+            else -> {
+                if (clase == VentasActivity::class.java) {
+                    lifecycleScope.launch {
+                        val totalExistencia = db.existenciasDao().obtenerTodasExistencias()
+                        if (totalExistencia <= 0) {
+                            Toast.makeText(this@MainActivity, "No hay existencias. Sincroniza primero.", Toast.LENGTH_LONG).show()
+                        } else {
+                            startActivity(Intent(this@MainActivity, clase))
+                        }
+                    }
+                } else {
+                    startActivity(Intent(this, clase))
+                }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        validarEstadoJornada()
     }
 
 }

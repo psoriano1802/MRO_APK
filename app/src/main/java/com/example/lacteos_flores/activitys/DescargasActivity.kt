@@ -277,12 +277,13 @@ class DescargasActivity : AppCompatActivity() {
 
                 val productosUI = productos.map {
                     ProductoUI(
-                        it.clave,
-                        it.existencia,
-                        it.unidad,
-                        0.0,
-                        0.0,
-                        it.descripcion
+                        cve = it.clave,
+                        cant = it.existencia,
+                        uni = it.unidad,
+                        costuni = 0.0,
+                        costbase = 0.0,
+                        importe = 0.0,
+                        descripcion = it.descripcion
                     )
                 }
 

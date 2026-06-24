@@ -13,6 +13,7 @@ data class ProductoUI(
     var cant: Double? = null,
     val uni: String? = null,
     var costuni: Double? = null,
+    var costbase: Double? = null,
     var importe: Double? = null,
     val descripcion: String? = null,
     val minutos: Double? = null,

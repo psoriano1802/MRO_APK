@@ -26,4 +26,14 @@ interface TmcDao {
 
     @Query("DELETE FROM modelo_aux")
     suspend fun eliminarModelos()
+
+    // color
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertarColors(colors: List<ColorAuxEntity>)
+
+    @Query("SELECT * FROM color_aux")
+    suspend fun obtenerColors(): List<ColorAuxEntity>
+
+    @Query("DELETE FROM color_aux")
+    suspend fun eliminarColors()
 }

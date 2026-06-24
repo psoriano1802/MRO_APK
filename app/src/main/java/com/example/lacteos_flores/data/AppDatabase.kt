@@ -12,8 +12,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [UsuarioEntity::class,  DoctosEntity::class, ClientsEntity::class,
         BancoEntity::class, GastosEntity::class, MonedaEntity::class, ListaPreciosEntity::class,
     ProductosEntity::class,ExistenciaEntity::class,Kdm1Entity::class,Kdm2Entity::class,ItemAuxEntity::class, CarteraEntity::class, Kdm2cxcEntity::class, GastoRegistradoEntity::class,
-    TallaAuxEntity::class, ModeloAuxEntity::class],
-    version = 19
+    TallaAuxEntity::class, ModeloAuxEntity::class, ColorAuxEntity::class],
+    version = 20
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun usuarioDao(): UsuarioDao

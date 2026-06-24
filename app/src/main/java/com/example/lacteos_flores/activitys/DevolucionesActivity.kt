@@ -339,12 +339,13 @@ class DevolucionesActivity : AppCompatActivity() {
                         }
 
                         val refaccion = ProductoUI(
-                            seleccionado.cve, 
-                            cant, 
-                            seleccionado.uni, 
-                            0.0, 
-                            0.0, 
-                            seleccionado.descripcion,
+                            cve = seleccionado.cve,
+                            cant = cant,
+                            uni = seleccionado.uni,
+                            costuni = 0.0,
+                            costbase = 0.0,
+                            importe = 0.0,
+                            descripcion = seleccionado.descripcion,
                             lote = loteText,
                             talla = tallaText.ifEmpty { "-" },
                             modelo = modeloText.ifEmpty { "-" },
@@ -357,12 +358,13 @@ class DevolucionesActivity : AppCompatActivity() {
                 } else {
                     // Si NO requiere lote, lo agregamos directamente con la cantidad de la búsqueda
                     val refaccion = ProductoUI(
-                        seleccionado.cve, 
-                        seleccionado.cant ?: 1.0, 
-                        seleccionado.uni, 
-                        0.0, 
-                        0.0, 
-                        seleccionado.descripcion,
+                        cve = seleccionado.cve,
+                        cant = seleccionado.cant ?: 1.0,
+                        uni = seleccionado.uni,
+                        costuni = 0.0,
+                        costbase = 0.0,
+                        importe = 0.0,
+                        descripcion = seleccionado.descripcion,
                         lote = "" // Sin lote
                     )
                     hproductsAdapter.agregarItem(refaccion)
@@ -687,9 +689,9 @@ class DevolucionesActivity : AppCompatActivity() {
         editText.setOnClickListener {
             lifecycleScope.launch {
                 val opciones = when (tipo) {
-                    "TALLA" -> db.existenciasDao().obtenerTallasPorProducto(claveProd)
-                    "MODELO" -> db.existenciasDao().obtenerModelosPorProducto(claveProd)
-                    "COLOR" -> db.existenciasDao().obtenerColoresPorProducto(claveProd)
+                    "TALLA" -> db.existenciasDao().obtenerTallasPorProductoDev()
+                    "MODELO" -> db.existenciasDao().obtenerModelosPorProductoDev()
+                    "COLOR" -> db.existenciasDao().obtenerColoresPorProductoDev()
                     else -> emptyList()
                 }
 

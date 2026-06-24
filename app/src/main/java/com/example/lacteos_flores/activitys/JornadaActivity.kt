@@ -71,7 +71,7 @@ class JornadaActivity: AppCompatActivity() {
         // Inicializa el manager con tu base de datos
         // val db = Room.databaseBuilder(...).build()
         catalogosManager = CatalogosManager(db)
-
+        obtenerUser()
         // Inicializar views
        initViews()
 
@@ -109,6 +109,7 @@ class JornadaActivity: AppCompatActivity() {
         val sdf = SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
         val fechaHoy = sdf.format(System.currentTimeMillis())
 
+
         if (fechaInicioStr == null || fechaInicioStr == "-") {
             // 3. Si no hay un inicio de jornada habilitar el Iniciar Jornada
             actualizarInterfaz(iniciar = true, terminar = false)
@@ -141,7 +142,7 @@ class JornadaActivity: AppCompatActivity() {
         btnFinDia = findViewById(R.id.btn_fin_dia)
         btnMenu = findViewById(R.id.btn_menu)
         tvUser = findViewById(R.id.tv_usuario)
-        tvUser.text = usuario
+
 
 
     }
@@ -351,6 +352,15 @@ class JornadaActivity: AppCompatActivity() {
         }
     }
 
+    //funcion para obtener el usuario
+    fun obtenerUser(){
+        lifecycleScope.launch{
+            val usrSess = loginUserDao.obtenerUsuario(usuario.toString())?.usuario.toString()
+            tvUser.text = usrSess
+        }
+
+
+    }
 
     // Función auxiliar para no repetir código de UI
 

@@ -4,10 +4,11 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 
 @Dao
 interface ExistenciaDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertarExistencias(existencia: List<ExistenciaEntity>)
 
     @Query("SELECT * FROM existencias WHERE clave = :cve ")
@@ -30,6 +31,42 @@ interface ExistenciaDao {
     @Query("UPDATE existencias SET existencias = :nuevaExistencia WHERE clave = :cve AND auxiliar = :auxiliar AND talla = :ta AND modelo = :mod AND color = :colo")
     suspend fun actualizarExistAux(cve: String, auxiliar: String, nuevaExistencia: String, ta: String, mod: String, colo: String)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertarExistencia(existencia: ExistenciaEntity): Long
+    @Query("""
+    UPDATE existencias
+    SET existencias = CAST(existencias AS INTEGER) + CAST(:cantidad AS INTEGER)
+    WHERE clave = :cve
+      AND auxiliar = :auxiliar
+      AND talla = :ta
+      AND modelo = :mod
+      AND color = :colo
+""")
+    suspend fun sumarExistencia(
+        cve: String,
+        auxiliar: String,
+        cantidad: String,
+        ta: String,
+        mod: String,
+        colo: String
+    ): Int
+
+    @Transaction
+    suspend fun sumarOInsertar(existencia: ExistenciaEntity) {
+
+        val actualizadas = sumarExistencia(
+            existencia.clave,
+            existencia.auxiliar,
+            existencia.existencias,
+            existencia.talla,
+            existencia.modelo,
+            existencia.color
+        )
+
+        if (actualizadas == 0) {
+            insertarExistencia(existencia)
+        }
+    }
     @Query("DELETE FROM existencias")
     suspend fun eliminarTodo()
 
@@ -51,4 +88,14 @@ interface ExistenciaDao {
 
     @Query("SELECT DISTINCT color FROM existencias WHERE clave = :cve AND color != '-' AND color != ''")
     suspend fun obtenerColoresPorProducto(cve: String): List<String>
+
+    //para devoluciones
+    @Query("SELECT DISTINCT clave FROM talla_aux WHERE clave != '-'")
+    suspend fun obtenerTallasPorProductoDev(): List<String>
+
+    @Query("SELECT DISTINCT clave FROM modelo_aux WHERE clave != '-' ")
+    suspend fun obtenerModelosPorProductoDev(): List<String>
+
+    @Query("SELECT DISTINCT clave FROM color_aux WHERE clave != '-'")
+    suspend fun obtenerColoresPorProductoDev(): List<String>
 }

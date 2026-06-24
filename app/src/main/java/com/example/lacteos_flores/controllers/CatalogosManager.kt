@@ -91,7 +91,7 @@ class CatalogosManager(private val db: AppDatabase) {
                 sincronizarTallas(login)
                 withContext(Dispatchers.Main) { onProgress("Sincronizando Modelos...") }
                 sincronizarModelos(login)
-                
+
             } catch (e: Exception) {
                 totalErrores++
                 reporteErrores.add("Productos/Tallas/Modelos: ${e.message}")
@@ -146,7 +146,7 @@ class CatalogosManager(private val db: AppDatabase) {
                 withContext(Dispatchers.Main) { onProgress("❌ Falló Monedas") }
             }
             // ---------------------------------------------------------
-            // 7. Sincronizar  cartera
+            // 8. Sincronizar  cartera
             // ---------------------------------------------------------
             try {
                 withContext(Dispatchers.Main) { onProgress("Sincronizando Carter...") }
@@ -157,6 +157,7 @@ class CatalogosManager(private val db: AppDatabase) {
                 reporteErrores.add("Carteras: ${e.message}")
                 withContext(Dispatchers.Main) { onProgress("❌ Falló Carteras") }
             }
+
             // ---------------------------------------------------------
             // EVALUACIÓN FINAL
             // ---------------------------------------------------------
@@ -558,6 +559,7 @@ class CatalogosManager(private val db: AppDatabase) {
                 sincronizarTallas(login)
                 sincronizarModelos(login)
 
+
             } else {
                 throw Exception("El WS de bancos no devolvió ok:1")
             }
@@ -593,7 +595,18 @@ class CatalogosManager(private val db: AppDatabase) {
                     if (login.tip == "16"){
                         // Actualiza o inserta nueva existencia (Upsert)
                         println("tipo de documento:${login.tip}")
-                        db.existenciasDao().actualizarExistAux(prod.cve.toString(),prod.aux.toString(),prod.exist.toString(),prod.talla.toString(),prod.modelo.toString(),prod.color.toString())
+                        db.existenciasDao().sumarOInsertar(
+                            ExistenciaEntity(
+                                clave = prod.cve.toString(),
+                                auxiliar = prod.aux.toString(),
+                                existencias = prod.exist.toString(),
+                                fecha = prod.fec.toString(),
+                                talla = prod.talla ?: "-",
+                                modelo = prod.modelo ?: "-",
+                                color = prod.color ?: "-"
+                            )
+                        )
+                       // db.existenciasDao().actualizarExistAux(prod.cve.toString(),prod.aux.toString(),prod.exist.toString(),prod.talla.toString(),prod.modelo.toString(),prod.color.toString())
                     }else {
                         listaParaGuardar.add(
                             ExistenciaEntity(
@@ -932,6 +945,7 @@ class CatalogosManager(private val db: AppDatabase) {
         val request = CatTmcRequest(login, "KDIS7")
         val response = RetrofitClient.apiService.getCatTmc(request)
 
+        println("entra a catalogo tallas")
         if (!response.isSuccessful) {
             throw Exception("Error servidor Tallas: ${response.code()}")
         }
@@ -963,6 +977,7 @@ class CatalogosManager(private val db: AppDatabase) {
         val request = CatTmcRequest(login, "KDIS8")
         val response = RetrofitClient.apiService.getCatTmc(request)
 
+        println("entra a catalogo modelo")
         if (!response.isSuccessful) {
             throw Exception("Error servidor Modelos: ${response.code()}")
         }

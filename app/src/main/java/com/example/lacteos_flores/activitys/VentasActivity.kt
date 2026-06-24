@@ -25,6 +25,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -363,9 +364,19 @@ class VentasActivity : AppCompatActivity() {
                 }
 
                 tvInfo.text = "${seleccionado.cve} - ${seleccionado.descripcion}"
-                etCant.setText("1.0")
-                etPrecio.setText(seleccionado.costuni?.toString() ?: "0.0")
+                etCant.setText("0.0")
+                /*val costUn = seleccionado.costuni ?: 0.0
+                val descuP = selectedClient?.descuentop
+                val descuento = descuP?.toDoubleOrNull() // Convierte a Double?; si falla, devuelve null
+
+                val prec = if (descuento != null && descuento != 0.0) {
+                    costUn - descuento   // Aplica el descuento
+                } else {
+                    costUn               // Sin descuento
+                }*/
+                etPrecio.setText(seleccionado.costuni.toString())
                 etPrecio.isEnabled = false // Precio no editable
+                etPrecio.isVisible = false
 
                 val dialog = AlertDialog.Builder(this@VentasActivity)
                     .setTitle("Detalle de Producto")
@@ -429,12 +440,13 @@ class VentasActivity : AppCompatActivity() {
                         }
 
                         val refaccion = ProductoUI(
-                            seleccionado.cve, 
-                            cant, 
-                            seleccionado.uni, 
-                            precio, 
-                            cant * precio, 
-                            seleccionado.descripcion,
+                            cve = seleccionado.cve, 
+                            cant = cant, 
+                            uni = seleccionado.uni, 
+                            costuni = precio, 
+                            costbase = precio, 
+                            importe = cant * precio, 
+                            descripcion = seleccionado.descripcion,
                             talla = tallaText.ifEmpty { "-" },
                             modelo = modeloText.ifEmpty { "-" },
                             color = colorText.ifEmpty { "-" },
@@ -462,8 +474,14 @@ class VentasActivity : AppCompatActivity() {
             val etModelo: EditText = dialogView.findViewById(R.id.et_modelo_edit)
             val etColor: EditText = dialogView.findViewById(R.id.et_color_edit)
 
+            val costUn = item.costuni ?: 0.0
+            val descuP = selectedClient?.descuentop
+            val descuento = descuP?.toDoubleOrNull()
+            val prec = if (descuento != null && descuento != 0.0 ){
+                costUn - descuento
+            }else{costUn}
             etCant.setText(item.cant.toString())
-            etPrecio.setText(item.costuni.toString())
+            etPrecio.setText(prec.toString())
             etPrecio.isEnabled = false // Precio no editable
             etTalla.setText(item.talla)
             etModelo.setText(item.modelo)
@@ -617,18 +635,26 @@ class VentasActivity : AppCompatActivity() {
         val descuentoCliente = selectedClient?.descuentop?.toDoubleOrNull() ?: 0.0
 
         for (item in lista) {
-            val originalImporte = (item.cant ?: 0.0) * (item.costuni ?: 0.0)
-            // Aplicar descuento si es mayor a 0 y menor al importe total del producto (línea)
-            val importeConDescuento = if (descuentoCliente > 0 && descuentoCliente < originalImporte) {
-                originalImporte - descuentoCliente
+            val cant = item.cant ?: 0.0
+            val costbase = item.costbase ?: 0.0
+            
+            // Aplicar descuento al costo unitario
+            // El descuento se resta directamente de cada unidad
+            val costUniEfectivo = if (descuentoCliente > 0 && descuentoCliente < costbase) {
+                costbase - descuentoCliente
             } else {
-                originalImporte
+                costbase
             }
             
-            subtotal += importeConDescuento
-            totalIva += importeConDescuento * 0.16 // IVA 16% sobre el importe descontado
+            item.costuni = costUniEfectivo
+            item.importe = cant * costUniEfectivo
+            
+            subtotal += item.importe!!
         }
         val total = subtotal + totalIva
+        
+        // Notificar al adapter que los precios cambiaron (costuni e importe)
+        hproductsAdapter.notifyDataSetChanged()
 
         etSubTotal.setText(String.format(Locale.US, "%.2f", subtotal))
         etIva.setText(String.format(Locale.US, "%.2f", totalIva))
@@ -726,15 +752,9 @@ class VentasActivity : AppCompatActivity() {
                     val partidaNum = (index + 1).toString()
                     var cantidadRestante = item.cant ?: 0.0
 
+
                     // 1. Crear Partida Kdm2 (Encabezado de la partida)
-                    val originalImportePartida = (item.cant ?: 0.0) * (item.costuni ?: 0.0)
-                    val descuentoCliente = selectedClient?.descuentop?.toDoubleOrNull() ?: 0.0
-                    
-                    val importeFinalPartida = if (descuentoCliente > 0 && descuentoCliente < originalImportePartida) {
-                        originalImportePartida - descuentoCliente
-                    } else {
-                        originalImportePartida
-                    }
+                    val originalImportePartida = item.importe ?: 0.0
 
                     partidas.add(Kdm2Entity(
                         iddoc = idDoc,
@@ -750,8 +770,8 @@ class VentasActivity : AppCompatActivity() {
                         descrip = item.descripcion ?: "",
                         unidad = item.uni ?: "",
                         precio = item.costuni.toString(),
-                        importe = String.format(Locale.US, "%.2f", importeFinalPartida),
-                        iva = String.format(Locale.US, "%.2f", importeFinalPartida * 0.16)
+                        importe = String.format(Locale.US, "%.2f", originalImportePartida),
+                        iva = String.format(Locale.US, "%.2f", 0.0)
                     ))
 
                     // 2. Lógica FIFO para descontar de múltiples lotes si es necesario
@@ -925,22 +945,13 @@ class VentasActivity : AppCompatActivity() {
             printText(headerRow)
             printDivider()
 
-            val descuentoCliente = selectedClient?.descuentop?.toDoubleOrNull() ?: 0.0
-
             for (item in partidas) {
-                val originalImporte = (item.cant ?: 0.0) * (item.costuni ?: 0.0)
-                val importeConDescuento = if (descuentoCliente > 0 && descuentoCliente < originalImporte) {
-                    originalImporte - descuentoCliente
-                } else {
-                    originalImporte
-                }
-
                 val line = String.format(Locale.US, "%-8s %-25s  %-5.1f %-9.2f %-10.2f\n",
                     item.cve?.take(8) ?: "",
                     item.descripcion ?: "",
                     item.cant ?: 0.0,
                     item.costuni ?: 0.0,
-                    importeConDescuento
+                    item.importe ?: 0.0
                 )
                 printText(line)
                 

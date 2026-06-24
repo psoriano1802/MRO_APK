@@ -33,14 +33,14 @@
 
         <!-- Documentos -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="4dp">
-            <Button android:id="@+id/btnSincronizarDocumentos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Documentos" />
+            <Button android:id="@+id/btnSincronizarDocumentos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Documentos" android:visibility="gone"/>
             <ProgressBar android:id="@+id/pbDocumentos" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
             <TextView android:id="@+id/tvResDocumentos" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
         </LinearLayout>
 
         <!-- Bancos -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="4dp">
-            <Button android:id="@+id/btnSincronizarBancos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Bancos" />
+            <Button android:id="@+id/btnSincronizarBancos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Bancos" android:visibility="gone" />
             <ProgressBar android:id="@+id/pbBancos" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
             <TextView android:id="@+id/tvResBancos" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
         </LinearLayout>
@@ -105,7 +105,7 @@
 
         <!-- Movimientos -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="16dp">
-            <Button android:id="@+id/btnSincronizarMovimientos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Movimientos" />
+            <Button android:id="@+id/btnSincronizarMovimientos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Movimientos a Sincronizar" />
             <ProgressBar android:id="@+id/pbMovimientos" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
             <TextView android:id="@+id/tvResMovimientos" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
         </LinearLayout>
@@ -121,13 +121,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Sincronizar Todo"
+            android:visibility="gone"
             android:layout_marginBottom="8dp"/>
 
         <Button
             android:id="@+id/btnVerHistorial"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Ver Historial Documentos"
+            android:text="Ver Historial Movimientos"
             android:layout_marginBottom="24dp"/>
 
         <ProgressBar
