@@ -115,8 +115,13 @@ class RefaccionesAdapter (
     }
 
     fun agregarItem(refaccion: ProductoUI) {
-        // Buscar si el producto ya existe en la lista
-        val index = refacciones.indexOfFirst { it.cve == refaccion.cve }
+        // Buscar si el producto ya existe en la lista CON LA MISMA VARIANTE (TMC)
+        val index = refacciones.indexOfFirst { 
+            it.cve == refaccion.cve && 
+            it.talla == refaccion.talla && 
+            it.modelo == refaccion.modelo && 
+            it.color == refaccion.color 
+        }
         
         if (index != -1) {
             // Si ya existe, sumamos la cantidad y actualizamos importe

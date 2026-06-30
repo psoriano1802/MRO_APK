@@ -390,21 +390,21 @@ class VentasActivity : AppCompatActivity() {
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                     val cant = etCant.text.toString().toDoubleOrNull() ?: 0.0
                     val precio = etPrecio.text.toString().toDoubleOrNull() ?: 0.0
-                    val tallaText = etTalla.text.toString().uppercase()
-                    val modeloText = etModelo.text.toString().uppercase()
-                    val colorText = etColor.text.toString().uppercase()
+                    val currentTalla = etTalla.text.toString().ifEmpty { "-" }.uppercase()
+                    val currentModelo = etModelo.text.toString().ifEmpty { "-" }.uppercase()
+                    val currentColor = etColor.text.toString().ifEmpty { "-" }.uppercase()
 
                     // Validaciones según TMC
                     val tmc = productoBase?.tmc ?: "0"
-                    if (tmc >= "1" && (tallaText.isEmpty() || tallaText == "-")) {
+                    if (tmc >= "1" && currentTalla == "-") {
                         Toast.makeText(this@VentasActivity, "La Talla es obligatoria", Toast.LENGTH_SHORT).show()
                         return@setOnClickListener
                     }
-                    if (tmc >= "2" && (modeloText.isEmpty() || modeloText == "-")) {
+                    if (tmc >= "2" && currentModelo == "-") {
                         Toast.makeText(this@VentasActivity, "El Modelo es obligatorio", Toast.LENGTH_SHORT).show()
                         return@setOnClickListener
                     }
-                    if (tmc >= "3" && (colorText.isEmpty() || colorText == "-")) {
+                    if (tmc >= "3" && currentColor == "-") {
                         Toast.makeText(this@VentasActivity, "El Color es obligatorio", Toast.LENGTH_SHORT).show()
                         return@setOnClickListener
                     }
@@ -415,21 +415,24 @@ class VentasActivity : AppCompatActivity() {
                     }
 
                     lifecycleScope.launch {
+                        // Obtener lista actualizada directamente del adapter
+                        val listaActual = hproductsAdapter.obtenerLista()
+
                         // Validar stock total para esta combinación específica de TMC
                         val lotesDisponibles = db.existenciasDao().obtenerLotesDisponibles(seleccionado.cve ?: "").filter {
-                            (tallaText == "-" || tallaText.isEmpty() || it.talla == tallaText) &&
-                            (modeloText == "-" || modeloText.isEmpty() || it.modelo == modeloText) &&
-                            (colorText == "-" || colorText.isEmpty() || it.color == colorText)
+                            it.talla.equals(currentTalla, ignoreCase = true) &&
+                            it.modelo.equals(currentModelo, ignoreCase = true) &&
+                            it.color.equals(currentColor, ignoreCase = true)
                         }
                         
                         var stockDisponibleTMC = lotesDisponibles.sumOf { it.existencias.toDoubleOrNull() ?: 0.0 }
                         
-                        // Restar lo ya agregado en la tabla
-                        val yaAgregado = yaAgregados.filter { 
+                        // Restar lo ya agregado en la tabla para esta variante exacta
+                        val yaAgregado = listaActual.filter { 
                             it.cve == seleccionado.cve && 
-                            (tallaText.ifEmpty { "-" } == it.talla) && 
-                            (modeloText.ifEmpty { "-" } == it.modelo) && 
-                            (colorText.ifEmpty { "-" } == it.color)
+                            it.talla.equals(currentTalla, ignoreCase = true) && 
+                            it.modelo.equals(currentModelo, ignoreCase = true) && 
+                            it.color.equals(currentColor, ignoreCase = true)
                         }.sumOf { it.cant ?: 0.0 }
                         
                         stockDisponibleTMC -= yaAgregado
@@ -447,9 +450,9 @@ class VentasActivity : AppCompatActivity() {
                             costbase = precio, 
                             importe = cant * precio, 
                             descripcion = seleccionado.descripcion,
-                            talla = tallaText.ifEmpty { "-" },
-                            modelo = modeloText.ifEmpty { "-" },
-                            color = colorText.ifEmpty { "-" },
+                            talla = currentTalla,
+                            modelo = currentModelo,
+                            color = currentColor,
                             lote = "MULTIPLE" // Indica que se usará FIFO al guardar
                         )
 
@@ -521,21 +524,21 @@ class VentasActivity : AppCompatActivity() {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val nuevaCant = etCant.text.toString().toDoubleOrNull() ?: 0.0
                 val nuevoPrecio = etPrecio.text.toString().toDoubleOrNull() ?: 0.0
-                val tallaText = etTalla.text.toString().uppercase()
-                val modeloText = etModelo.text.toString().uppercase()
-                val colorText = etColor.text.toString().uppercase()
+                val currentTalla = etTalla.text.toString().ifEmpty { "-" }.uppercase()
+                val currentModelo = etModelo.text.toString().ifEmpty { "-" }.uppercase()
+                val currentColor = etColor.text.toString().ifEmpty { "-" }.uppercase()
 
                 // Validaciones TMC
                 val tmc = productoBase.tmc
-                if (tmc >= "1" && (tallaText.isEmpty() || tallaText == "-")) {
+                if (tmc >= "1" && currentTalla == "-") {
                     Toast.makeText(this@VentasActivity, "La Talla es obligatoria", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
-                if (tmc >= "2" && (modeloText.isEmpty() || modeloText == "-")) {
+                if (tmc >= "2" && currentModelo == "-") {
                     Toast.makeText(this@VentasActivity, "El Modelo es obligatorio", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
-                if (tmc >= "3" && (colorText.isEmpty() || colorText == "-")) {
+                if (tmc >= "3" && currentColor == "-") {
                     Toast.makeText(this@VentasActivity, "El Color es obligatorio", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
@@ -548,16 +551,19 @@ class VentasActivity : AppCompatActivity() {
                 lifecycleScope.launch {
                     // Validar Stock para la nueva variante/cantidad
                     val lotesDisponibles = db.existenciasDao().obtenerLotesDisponibles(item.cve ?: "").filter {
-                        (tallaText == "-" || it.talla == tallaText) &&
-                        (modeloText == "-" || it.modelo == modeloText) &&
-                        (colorText == "-" || it.color == colorText)
+                        it.talla.equals(currentTalla, ignoreCase = true) &&
+                        it.modelo.equals(currentModelo, ignoreCase = true) &&
+                        it.color.equals(currentColor, ignoreCase = true)
                     }
                     
                     var stockDisponibleTMC = lotesDisponibles.sumOf { it.existencias.toDoubleOrNull() ?: 0.0 }
                     
                     // Restar otros items del mismo producto (excepto el que estamos editando)
                     val yaAgregado = hproductsAdapter.obtenerLista().filterIndexed { idx, p -> 
-                        idx != position && p.cve == item.cve && p.talla == tallaText && p.modelo == modeloText && p.color == colorText
+                        idx != position && p.cve == item.cve && 
+                        p.talla.equals(currentTalla, ignoreCase = true) && 
+                        p.modelo.equals(currentModelo, ignoreCase = true) && 
+                        p.color.equals(currentColor, ignoreCase = true)
                     }.sumOf { it.cant ?: 0.0 }
                     
                     stockDisponibleTMC -= yaAgregado
@@ -571,9 +577,9 @@ class VentasActivity : AppCompatActivity() {
                     item.cant = nuevaCant
                     item.costuni = nuevoPrecio
                     item.importe = nuevaCant * nuevoPrecio
-                    item.talla = tallaText.ifEmpty { "-" }
-                    item.modelo = modeloText.ifEmpty { "-" }
-                    item.color = colorText.ifEmpty { "-" }
+                    item.talla = currentTalla
+                    item.modelo = currentModelo
+                    item.color = currentColor
 
                     hproductsAdapter.notifyItemChanged(position + 1)
                     calcularTotales()
@@ -708,13 +714,14 @@ class VentasActivity : AppCompatActivity() {
                 // 1. Validar Límite de Crédito antes de guardar (si es crédito)
                 val clienteActual = db.clientsDao().obtenerCliente(cliente)
                 val condicionPago = spTipoDoc.selectedItem.toString()
-                
-                if (condicionPago.uppercase().contains("CREDITO")) {
+                var tipoCon = "Pago De Contado"
+                if (condicionPago.uppercase().contains("CREDITO") || condicionPago.uppercase().contains("CREDÍTO")) {
                     val limiteDisponible = clienteActual?.limcre?.toDoubleOrNull() ?: 0.0
                     if (montoTotalVenta > limiteDisponible) {
                         Toast.makeText(this@VentasActivity, "Crédito insuficiente. Disponible: $limiteDisponible", Toast.LENGTH_LONG).show()
                         return@launch
                     }
+                    tipoCon= clienteActual?.plazo +" dias de factura"
                 }
 
                 // Header (Kdm1)
@@ -728,11 +735,10 @@ class VentasActivity : AppCompatActivity() {
                     fecha = fecha,
                     cliente = cliente,
                     moneda = "PESOS",
-                    pari = "1.0",
+                    pari = "1",
                     rfc = selectedClient?.rfc ?: "",
                     venc = fecha,
-                    //tomamos el tipo de documento seleccionado
-                    condi = spTipoDoc.selectedItem.toString(),
+                    condi = tipoCon,
                     agent = usuario.usuario ?: "",
                     lati = selectedClient?.latitud ?: "0.0",
                     long = selectedClient?.longitud ?: "0.0",
@@ -813,6 +819,9 @@ class VentasActivity : AppCompatActivity() {
                         db.existenciasDao().actualizarExistencia(
                             item.cve ?: "",
                             loteEntity.auxiliar,
+                            loteEntity.talla,
+                            loteEntity.modelo,
+                            loteEntity.color,
                             String.format(Locale.US, "%.2f", nuevoStock)
                         )
 

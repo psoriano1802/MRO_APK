@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="#F5F5F5">
+    android:background="?attr/colorSurface">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,7 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:background="@android:color/white"
+            android:background="?attr/colorSurfaceVariant"
             android:padding="12dp"
             android:layout_marginBottom="16dp"
             android:elevation="2dp">
@@ -27,7 +27,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Registro de Cobros"
-                android:textColor="#333333"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
@@ -37,7 +37,7 @@
                 android:layout_height="wrap_content"
                 android:text="2024-05-24"
                 android:textSize="14sp"
-                android:textColor="#666666" />
+                android:textColor="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
 
         <!-- Selección de Cliente -->
@@ -45,7 +45,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@android:color/white"
+            android:background="?attr/colorSurfaceVariant"
             android:padding="16dp"
             android:layout_marginBottom="16dp"
             android:elevation="2dp">
@@ -55,7 +55,7 @@
                 android:layout_height="wrap_content"
                 android:text="Cliente"
                 android:textSize="14sp"
-                android:textColor="#666666"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
@@ -70,7 +70,7 @@
                     android:layout_width="0dp"
                     android:layout_height="45dp"
                     android:layout_weight="1"
-                    android:background="#F0F0F0"
+                    android:background="?attr/colorSurfaceContainer"
                     android:hint="Buscar por nombre o clave..."
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"
@@ -105,7 +105,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@android:color/white"
+            android:background="?attr/colorSurfaceVariant"
             android:padding="16dp"
             android:layout_marginBottom="16dp"
             android:elevation="2dp">
@@ -115,7 +115,7 @@
                 android:layout_height="wrap_content"
                 android:text="Información del Pago"
                 android:textSize="14sp"
-                android:textColor="#666666"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textStyle="bold"
                 android:layout_marginBottom="12dp" />
 
@@ -124,14 +124,14 @@
                 android:layout_height="wrap_content"
                 android:text="Forma de Pago"
                 android:textSize="12sp"
-                android:textColor="#888888" />
+                android:textColor="?attr/colorOnSurfaceVariant" />
 
             <Spinner
                 android:id="@+id/sp_forma_pago"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:layout_marginBottom="12dp"
-                android:background="#E0E0E0" />
+                android:background="?attr/colorSurfaceContainerHigh" />
 
             <TextView
                 android:id="@+id/tv_label_banco"
@@ -139,27 +139,27 @@
                 android:layout_height="wrap_content"
                 android:text="Banco (Transferencia)"
                 android:textSize="12sp"
-                android:textColor="#888888" />
+                android:textColor="?attr/colorOnSurfaceVariant" />
 
             <Spinner
                 android:id="@+id/sp_banco"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:layout_marginBottom="12dp"
-                android:background="#E0E0E0" />
+                android:background="?attr/colorSurfaceContainerHigh" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Monto del Cobro"
                 android:textSize="12sp"
-                android:textColor="#888888" />
+                android:textColor="?attr/colorOnSurfaceVariant" />
 
             <EditText
                 android:id="@+id/et_monto_cobro"
                 android:layout_width="match_parent"
                 android:layout_height="45dp"
-                android:background="#F0F0F0"
+                android:background="?attr/colorSurfaceContainer"
                 android:hint="0.00"
                 android:inputType="numberDecimal"
                 android:paddingStart="12dp"
@@ -172,7 +172,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@android:color/white"
+            android:background="?attr/colorSurfaceVariant"
             android:padding="16dp"
             android:layout_marginBottom="16dp"
             android:elevation="2dp">
@@ -182,7 +182,7 @@
                 android:layout_height="wrap_content"
                 android:text="Facturas Pendientes"
                 android:textSize="14sp"
-                android:textColor="#666666"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
@@ -191,7 +191,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:background="#E0E0E0"
+                android:background="?attr/colorSurfaceContainerHigh"
                 android:padding="8dp">
 
                 <CheckBox

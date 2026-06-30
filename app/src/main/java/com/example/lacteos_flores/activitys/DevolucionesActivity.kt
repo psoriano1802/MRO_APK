@@ -593,28 +593,41 @@ class DevolucionesActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val productoBase = db.productosDao().obtenerProducto(item.cve ?: "") ?: return@launch
             
-            val dialogView = LayoutInflater.from(this@DevolucionesActivity).inflate(R.layout.dialog_editar_item, null)
-            val etCant: EditText = dialogView.findViewById(R.id.et_cantidad_edit)
-            val etPrecio: EditText = dialogView.findViewById(R.id.et_precio_edit)
-            val etTalla: EditText = dialogView.findViewById(R.id.et_talla_edit)
-            val etModelo: EditText = dialogView.findViewById(R.id.et_modelo_edit)
-            val etColor: EditText = dialogView.findViewById(R.id.et_color_edit)
+            val dialogView = LayoutInflater.from(this@DevolucionesActivity).inflate(R.layout.dialog_devolucion_item, null)
+            val tvInfo: TextView = dialogView.findViewById(R.id.tv_producto_info)
+            val etCant: EditText = dialogView.findViewById(R.id.et_cantidad_dev)
+            val etLote: EditText = dialogView.findViewById(R.id.et_lote_dev)
+            val etPrecio: EditText = dialogView.findViewById(R.id.et_precio_dev)
+            val etTalla: EditText = dialogView.findViewById(R.id.et_talla_dev)
+            val etModelo: EditText = dialogView.findViewById(R.id.et_modelo_dev)
+            val etColor: EditText = dialogView.findViewById(R.id.et_color_dev)
 
+            tvInfo.text = "${item.cve} - ${item.descripcion}"
             etPrecio.visibility = View.GONE // Devoluciones no muestran precio
             etCant.setText(item.cant.toString())
+            etLote.setText(item.lote)
             etTalla.setText(item.talla)
             etModelo.setText(item.modelo)
             etColor.setText(item.color)
+
+            // Forzar MAYUSCULAS
+            etLote.filters = arrayOf(InputFilter.AllCaps())
+            etTalla.filters = arrayOf(InputFilter.AllCaps())
+            etModelo.filters = arrayOf(InputFilter.AllCaps())
+            etColor.filters = arrayOf(InputFilter.AllCaps())
 
             // Configurar visibilidad según el campo 'tmc' de la DB
             when (productoBase.tmc) {
                 "1" -> {
                     etTalla.visibility = View.VISIBLE
+                    etModelo.visibility = View.GONE
+                    etColor.visibility = View.GONE
                     configurarSeleccionCatalogo(etTalla, item.cve ?: "", "TALLA")
                 }
                 "2" -> {
                     etTalla.visibility = View.VISIBLE
                     etModelo.visibility = View.VISIBLE
+                    etColor.visibility = View.GONE
                     configurarSeleccionCatalogo(etTalla, item.cve ?: "", "TALLA")
                     configurarSeleccionCatalogo(etModelo, item.cve ?: "", "MODELO")
                 }
@@ -625,6 +638,11 @@ class DevolucionesActivity : AppCompatActivity() {
                     configurarSeleccionCatalogo(etTalla, item.cve ?: "", "TALLA")
                     configurarSeleccionCatalogo(etModelo, item.cve ?: "", "MODELO")
                     configurarSeleccionCatalogo(etColor, item.cve ?: "", "COLOR")
+                }
+                else -> {
+                    etTalla.visibility = View.GONE
+                    etModelo.visibility = View.GONE
+                    etColor.visibility = View.GONE
                 }
             }
 
@@ -639,6 +657,7 @@ class DevolucionesActivity : AppCompatActivity() {
 
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val nuevaCant = etCant.text.toString().toDoubleOrNull() ?: 0.0
+                val nuevoLote = etLote.text.toString().uppercase()
                 val tallaText = etTalla.text.toString().uppercase()
                 val modeloText = etModelo.text.toString().uppercase()
                 val colorText = etColor.text.toString().uppercase()
@@ -658,6 +677,11 @@ class DevolucionesActivity : AppCompatActivity() {
                     return@setOnClickListener
                 }
 
+                if (nuevoLote.isEmpty()) {
+                    Toast.makeText(this@DevolucionesActivity, "El lote es obligatorio", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
                 if (nuevaCant <= 0) {
                     Toast.makeText(this@DevolucionesActivity, "Cantidad inválida", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
@@ -665,12 +689,14 @@ class DevolucionesActivity : AppCompatActivity() {
 
                 // Actualizar item
                 item.cant = nuevaCant
+                item.lote = nuevoLote
                 item.talla = tallaText.ifEmpty { "-" }
                 item.modelo = modeloText.ifEmpty { "-" }
                 item.color = colorText.ifEmpty { "-" }
                 
-                // Si la devolución tenía desglose de lotes (consolidado), ajustamos proporcionalmente o lo que sea necesario
+                // Si la devolución tenía desglose de lotes (consolidado), ajustamos
                 if (item.desgloseLotes.size == 1) {
+                    item.desgloseLotes[0].lote = nuevoLote
                     item.desgloseLotes[0].cantidad = nuevaCant
                     item.desgloseLotes[0].talla = item.talla
                     item.desgloseLotes[0].modelo = item.modelo

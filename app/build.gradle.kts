@@ -24,7 +24,7 @@ android {
             applicationId = "com.example.lacteos_flores.beta"
             versionNameSuffix = "-BETA"
             buildConfigField("String","ENVIROMENT","\"BETA\"")
-            buildConfigField("String","BASE_URL", "\"http://keplerqro.dnsalias.com:1960/\"")
+            buildConfigField("String","BASE_URL", "\"http://grj02.dnsalias.net/:1960/\"")//keplerqro.dnsalias.com
             resValue("string", "app_name", "LF Ruta")
         }
         create("prod"){

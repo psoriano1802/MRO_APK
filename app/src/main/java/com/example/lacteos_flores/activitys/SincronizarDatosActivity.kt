@@ -103,14 +103,19 @@ class SincronizarDatosActivity : AppCompatActivity() {
             findViewById(R.id.btnSincronizarClientes),
             findViewById(R.id.pbClientes),
             findViewById(R.id.tvResClientes)
-        ) { catalogosManager.sincronizarClientes(it) })
+        ) { 
+            val pendingCobros = db.kdm1Dao().contarCobrosPendientes()
+            if (pendingCobros > 0) {
+                throw Exception("Hay $pendingCobros cobros pendientes. Sincronízalos primero.")
+            }
+            catalogosManager.sincronizarCartera(it)
+            catalogosManager.sincronizarClientes(it)
+        })
 
         // Cartera
-        syncRows.add(SyncRow(
-            findViewById(R.id.btnSincronizarCartera),
-            findViewById(R.id.pbCartera),
-            findViewById(R.id.tvResCartera)
-        ) { catalogosManager.sincronizarCartera(it) })
+        findViewById<Button>(R.id.btnSincronizarCartera).visibility = View.GONE
+        findViewById<ProgressBar>(R.id.pbCartera).visibility = View.GONE
+        findViewById<TextView>(R.id.tvResCartera).visibility = View.GONE
 
         // Gastos
         syncRows.add(SyncRow(
@@ -118,13 +123,6 @@ class SincronizarDatosActivity : AppCompatActivity() {
             findViewById(R.id.pbGastos),
             findViewById(R.id.tvResGastos)
         ) { catalogosManager.sincronizarGastos(it) })
-
-        // Listas Precio
-        syncRows.add(SyncRow(
-            findViewById(R.id.btnSincronizarListasPrecio),
-            findViewById(R.id.pbListasPrecio),
-            findViewById(R.id.tvResListasPrecio)
-        ) { catalogosManager.sincronizarListaPrecios(it) })
 
         // Productos
         syncRows.add(SyncRow(
@@ -134,7 +132,13 @@ class SincronizarDatosActivity : AppCompatActivity() {
         ) { login ->
             val userEntity = db.usuarioDao().obtenerUsuario(usuario.toString())
             catalogosManager.sincronizarProductos(login, userEntity?.lista ?: "")
+            catalogosManager.sincronizarListaPrecios(login)
         })
+
+        // Listas Precio
+        findViewById<Button>(R.id.btnSincronizarListasPrecio).visibility = View.GONE
+        findViewById<ProgressBar>(R.id.pbListasPrecio).visibility = View.GONE
+        findViewById<TextView>(R.id.tvResListasPrecio).visibility = View.GONE
 
         // Existencia
         syncRows.add(SyncRow(

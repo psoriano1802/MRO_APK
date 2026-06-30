@@ -25,6 +25,9 @@ interface Kdm1Dao {
     @Query("SELECT * FROM kdm1_doctos WHERE id = :id")
     suspend fun obtenerDocumentoPorId(id: Long): Kdm1Entity?
 
+    @Query("SELECT COUNT(*) FROM kdm1_doctos WHERE staSinc = 'N' AND gen = 'U' AND nat = 'A' AND grp = '5'")
+    suspend fun contarCobrosPendientes(): Int
+
     @Query("DELETE FROM kdm1_doctos")
     suspend fun eliminarTodoMovimiento()
 

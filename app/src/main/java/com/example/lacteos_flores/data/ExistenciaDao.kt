@@ -25,8 +25,8 @@ interface ExistenciaDao {
     @Query("SELECT * FROM existencias WHERE clave = :cve AND CAST(existencias AS DOUBLE) > 0 ORDER BY fecha ASC")
     suspend fun obtenerLotesDisponibles(cve: String): List<ExistenciaEntity>
 
-    @Query("UPDATE existencias SET existencias = :nuevaExistencia WHERE clave = :cve AND auxiliar = :auxiliar ")
-    suspend fun actualizarExistencia(cve: String, auxiliar: String, nuevaExistencia: String)
+    @Query("UPDATE existencias SET existencias = :nuevaExistencia WHERE clave = :cve AND auxiliar = :auxiliar AND talla = :ta AND modelo = :mod AND color = :colo")
+    suspend fun actualizarExistencia(cve: String, auxiliar: String, ta: String, mod: String, colo: String, nuevaExistencia: String)
 
     @Query("UPDATE existencias SET existencias = :nuevaExistencia WHERE clave = :cve AND auxiliar = :auxiliar AND talla = :ta AND modelo = :mod AND color = :colo")
     suspend fun actualizarExistAux(cve: String, auxiliar: String, nuevaExistencia: String, ta: String, mod: String, colo: String)
@@ -69,6 +69,27 @@ interface ExistenciaDao {
     }
     @Query("DELETE FROM existencias")
     suspend fun eliminarTodo()
+
+    data class StockTMC(
+        val clave: String,
+        val descripcion: String,
+        val unidad: String,
+        val existencia: Double,
+        val talla: String,
+        val modelo: String,
+        val color: String
+    )
+
+    @Query("""
+        SELECT e.clave, p.descripcion, p.unidad, 
+        SUM(CAST(e.existencias AS DOUBLE)) as existencia,
+        e.talla, e.modelo, e.color
+        FROM existencias e
+        INNER JOIN productos p ON e.clave = p.clave
+        GROUP BY e.clave, e.talla, e.modelo, e.color
+        HAVING SUM(CAST(e.existencias AS DOUBLE)) > 0
+    """)
+    suspend fun obtenerStockAgrupadoTMC(): List<StockTMC>
 
     @Query("""
         SELECT p.clave, p.descripcion, p.cb, p.unidad, p.unidadalt, p.precio1, p.precio2, p.precio3, p.precio4, p.iva, p.ieps, p.ubicaalm, p.serie, p.lotesf, p.tmc, p.ubicacionn, p.pedimento, 

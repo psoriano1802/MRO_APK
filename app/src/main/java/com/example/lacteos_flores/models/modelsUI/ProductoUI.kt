@@ -1,7 +1,7 @@
 package com.example.lacteos_flores.models.modelsUI
 
 data class LoteDetalle(
-    val lote: String,
+    var lote: String,
     var cantidad: Double,
     var talla: String = "-",
     var modelo: String = "-",

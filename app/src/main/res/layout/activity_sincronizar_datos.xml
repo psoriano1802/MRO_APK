@@ -54,7 +54,7 @@
 
         <!-- Cartera -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="4dp">
-            <Button android:id="@+id/btnSincronizarCartera" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Cartera" />
+            <Button android:id="@+id/btnSincronizarCartera" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Cartera" android:visibility="gone"/>
             <ProgressBar android:id="@+id/pbCartera" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
             <TextView android:id="@+id/tvResCartera" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
         </LinearLayout>
@@ -68,7 +68,7 @@
 
         <!-- Lista Precios -->
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="4dp">
-            <Button android:id="@+id/btnSincronizarListasPrecio" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Lista Precios" />
+            <Button android:id="@+id/btnSincronizarListasPrecio" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Lista Precios" android:visibility="gone"/>
             <ProgressBar android:id="@+id/pbListasPrecio" style="?android:attr/progressBarStyleSmall" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginStart="8dp" android:visibility="gone" />
             <TextView android:id="@+id/tvResListasPrecio" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="18sp" />
         </LinearLayout>

@@ -170,6 +170,16 @@ class JornadaActivity: AppCompatActivity() {
 
     private fun validarFinJornada() {
         lifecycleScope.launch {
+            // 1. Validar si hay existencias pero no se ha registrado una descarga
+            val hayStock = db.existenciasDao().obtenerStockAgrupadoTMC().isNotEmpty()
+            val hayDescarga = db.kdm1Dao().obtenerMovimientos().any { it.grp == "25" && it.tip=="18"}
+
+            if (hayStock && !hayDescarga) {
+                mostrarDialogoDescargaPendiente()
+                return@launch
+            }
+
+            // 2. Validar si hay documentos pendientes por sincronizar
             val pendientesMov = db.kdm1Dao().obtenerMovimientos().any { it.staSinc == "N" }
             val pendientesGastos = db.gastoRegistradoDao().obtenerGastosPendientes().isNotEmpty()
 
@@ -181,14 +191,23 @@ class JornadaActivity: AppCompatActivity() {
         }
     }
 
+    private fun mostrarDialogoDescargaPendiente() {
+        AlertDialog.Builder(this)
+            .setTitle("Existencias Pendientes")
+            .setMessage("Aún cuenta con existencias en su inventario local. Por favor, realice la 'Descarga' de sus productos antes de finalizar la jornada.")
+            .setPositiveButton("Aceptar", null)
+            .show()
+    }
+
     private fun mostrarDialogoSincronizacion() {
         AlertDialog.Builder(this)
             .setTitle("Documentos Pendientes")
             .setMessage("Hay documentos pendientes por sincronizar. Se procederá a sincronizarlos antes de finalizar la jornada.")
-            .setPositiveButton("Aceptar") { _, _ ->
+            .setPositiveButton("Aceptar", null)
+            /*.setPositiveButton("Aceptar") { _, _ ->
                 procederSincronizacionYFin()
-            }
-            .setNegativeButton("Cancelar", null)
+            }*/
+            //.setNegativeButton("Cancelar", null)
             .show()
     }
 

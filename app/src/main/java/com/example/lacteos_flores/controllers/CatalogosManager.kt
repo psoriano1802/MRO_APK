@@ -248,7 +248,8 @@ class CatalogosManager(private val db: AppDatabase) {
         val auxiliares = db.itemAuxDao().obtenerAuxiliares(iddoc)
 
         val itemsDocList = partidas.map { p ->
-            val auxList = auxiliares.filter { it.partida == p.partida && it.producto == p.producto }.map { a ->
+            val auxList = auxiliares.filter { it.partida == p.partida && it.producto == p.producto && it.auxiliar != "-"}.map { a ->
+
                 val caduc= db.existenciasDao().obtenerLoteEspecifico(p.producto,a.auxiliar)
                 com.example.lacteos_flores.models.ItemsAuxiliar(
                     serie = a.auxiliar,
@@ -259,7 +260,9 @@ class CatalogosManager(private val db: AppDatabase) {
                     color = a.color,
                     ubicacion = "-"
                 )
+
             }
+            println("auxiliar: $auxList")
             com.example.lacteos_flores.models.ItemsDoc(
                 kparte = p.producto,
                 cant = p.cantidad,
@@ -271,7 +274,7 @@ class CatalogosManager(private val db: AppDatabase) {
                 iva = p.iva,
                 ieps = "0.0",
                 desc = "0",
-                itemAux = if (auxList.isNotEmpty()) auxList else null
+                itemAux = if (auxList.isNotEmpty() ) auxList else null
             )
         }
 

@@ -268,14 +268,15 @@ class DescargasActivity : AppCompatActivity() {
     private fun cargarTodasExistencias() {
         lifecycleScope.launch {
             try {
-                val productos = db.existenciasDao().obtenerProductosConStock()
+                // Obtenemos el stock agrupado por TMC (Talla, Modelo, Color)
+                val stockList = db.existenciasDao().obtenerStockAgrupadoTMC()
                 
-                if (productos.isEmpty()) {
+                if (stockList.isEmpty()) {
                     Toast.makeText(this@DescargasActivity, "No hay productos con existencias", Toast.LENGTH_SHORT).show()
                     return@launch
                 }
 
-                val productosUI = productos.map {
+                val productosUI = stockList.map {
                     ProductoUI(
                         cve = it.clave,
                         cant = it.existencia,
@@ -283,12 +284,16 @@ class DescargasActivity : AppCompatActivity() {
                         costuni = 0.0,
                         costbase = 0.0,
                         importe = 0.0,
-                        descripcion = it.descripcion
+                        descripcion = it.descripcion,
+                        talla = it.talla,
+                        modelo = it.modelo,
+                        color = it.color,
+                        lote = "MULTIPLE" // Para que al guardar use FIFO por esta variante
                     )
                 }
 
                 hproductsAdapter.actualizarLista(productosUI.toMutableList())
-                Toast.makeText(this@DescargasActivity, "Se cargaron ${productos.size} productos con existencia", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@DescargasActivity, "Se cargaron ${stockList.size} variantes con existencia", Toast.LENGTH_SHORT).show()
 
             } catch (e: Exception) {
                 Toast.makeText(this@DescargasActivity, "Error al cargar existencias: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -381,7 +386,12 @@ class DescargasActivity : AppCompatActivity() {
                     ))
 
                     // 2. Lógica FIFO para descontar de múltiples lotes
-                    val lotesDisponibles = db.existenciasDao().obtenerLotesDisponibles(item.cve ?: "")
+                    // IMPORTANTE: Filtrar por la variante específica (TMC)
+                    val lotesDisponibles = db.existenciasDao().obtenerLotesDisponibles(item.cve ?: "").filter {
+                        it.talla.equals(item.talla, ignoreCase = true) &&
+                        it.modelo.equals(item.modelo, ignoreCase = true) &&
+                        it.color.equals(item.color, ignoreCase = true)
+                    }
                     
                     for (loteEntity in lotesDisponibles) {
                         if (cantidadRestante <= 0) break
@@ -414,6 +424,9 @@ class DescargasActivity : AppCompatActivity() {
                         db.existenciasDao().actualizarExistencia(
                             item.cve ?: "",
                             loteEntity.auxiliar,
+                            loteEntity.talla,
+                            loteEntity.modelo,
+                            loteEntity.color,
                             String.format(Locale.US, "%.2f", nuevoStock)
                         )
 
@@ -492,6 +505,16 @@ class DescargasActivity : AppCompatActivity() {
                     item.cant ?: 0.0
                 )
                 printText(line)
+
+                // Imprimir atributos TMC si existen
+                val atributos = mutableListOf<String>()
+                if (item.talla != "-") atributos.add("T: ${item.talla}")
+                if (item.modelo != "-") atributos.add("M: ${item.modelo}")
+                if (item.color != "-") atributos.add("C: ${item.color}")
+                
+                if (atributos.isNotEmpty()) {
+                    printText("   ${atributos.joinToString(" ")}\n")
+                }
             }
             printDivider()
 

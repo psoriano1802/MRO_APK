@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="@android:color/white">
+    android:background="?attr/colorSurface">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -38,7 +38,7 @@
             android:hint="FECHA"
             android:padding="10dp"
             android:background="@drawable/custom_input_background"
-            android:textColor="@android:color/black"
+            android:textColor="?attr/colorOnSurface"
             app:layout_constraintTop_toBottomOf="@id/tvAlmacen"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@id/spinnerTipoDoc"
@@ -59,7 +59,7 @@
             android:layout_width="match_parent"
             android:layout_height="2dp"
             android:layout_marginTop="12dp"
-            android:background="#CCCCCC"
+            android:background="?attr/colorOutlineVariant"
             app:layout_constraintTop_toBottomOf="@id/spinnerTipoDoc" />
 
         <EditText
@@ -86,7 +86,7 @@
             android:padding="10dp"
             android:minHeight="48dp"
             android:gravity="center_vertical"
-            android:textColor="@android:color/black"
+            android:textColor="?attr/colorOnSurface"
             android:visibility="gone"
             android:background="@drawable/custom_input_background"
             app:layout_constraintTop_toBottomOf="@id/etCodigoCliente" />
@@ -96,7 +96,7 @@
             android:layout_width="match_parent"
             android:layout_height="2dp"
             android:layout_marginTop="12dp"
-            android:background="#CCCCCC"
+            android:background="?attr/colorOutlineVariant"
             app:layout_constraintTop_toBottomOf="@id/tvNombreCliente" />
 
         <EditText
