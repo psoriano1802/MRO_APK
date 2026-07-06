@@ -248,7 +248,7 @@ class GastosActivity : AppCompatActivity() {
                 showToast(this@GastosActivity, "Gastos guardados localmente")
                 
                 // 3. Imprimir Ticket
-                imprimirTicketGasto(gastosEntidades)
+              //  imprimirTicketGasto(gastosEntidades)
 
                 // 2. Intentar sincronizar en segundo plano
                 // por ahora se queda a envio manual desde el sincronizador

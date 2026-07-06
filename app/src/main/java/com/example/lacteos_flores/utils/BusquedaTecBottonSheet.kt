@@ -49,7 +49,7 @@ class BusquedaTecBottonSheet(
 
         binding.btnBuscar.setOnClickListener {
             val texto = binding.editTextBusqueda.text.toString()
-            if (texto.length < 3) {
+            if (texto.length < 0) {
                 binding.editTextBusqueda.error = "Ingresa al menos 3 caracteres"
                 return@setOnClickListener
             }

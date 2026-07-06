@@ -3,14 +3,16 @@ package com.example.lacteos_flores.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.lacteos_flores.R
 import com.example.lacteos_flores.models.DocumentoHistorial
-import java.util.*
 
-class HistorialDocumentosAdapter(private var list: List<DocumentoHistorial>) :
-    RecyclerView.Adapter<HistorialDocumentosAdapter.ViewHolder>() {
+class HistorialDocumentosAdapter(
+    private var list: List<DocumentoHistorial>,
+    private val onPrintClick: (DocumentoHistorial) -> Unit
+) : RecyclerView.Adapter<HistorialDocumentosAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvStatus: TextView = view.findViewById(R.id.tvStatus)
@@ -21,6 +23,7 @@ class HistorialDocumentosAdapter(private var list: List<DocumentoHistorial>) :
         val tvFolioKepler: TextView = view.findViewById(R.id.tvFolioKepler)
         val tvCliente: TextView = view.findViewById(R.id.tvCliente)
         val tvMonto: TextView = view.findViewById(R.id.tvMonto)
+        val btnImprimir: ImageButton = view.findViewById(R.id.btnImprimir)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -43,6 +46,9 @@ class HistorialDocumentosAdapter(private var list: List<DocumentoHistorial>) :
         holder.tvFolioKepler.text = "Folio Kepler: ${item.folioKepler ?: "-"}"
         holder.tvCliente.text = "Cliente: ${item.cliente}"
         holder.tvMonto.text = "Monto: $${item.monto}"
+
+        holder.btnImprimir.setOnClickListener { onPrintClick(item) }
+        holder.itemView.setOnClickListener { onPrintClick(item) }
     }
 
     override fun getItemCount(): Int = list.size

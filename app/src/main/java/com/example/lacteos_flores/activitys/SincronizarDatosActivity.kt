@@ -162,6 +162,7 @@ class SincronizarDatosActivity : AppCompatActivity() {
         ) { login ->
             catalogosManager.enviarVentasPendientes(login)
             catalogosManager.enviarGastosPendientes(login)
+
         })
 
         // Set click listeners for individual buttons

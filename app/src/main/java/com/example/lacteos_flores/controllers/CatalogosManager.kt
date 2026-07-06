@@ -514,13 +514,15 @@ class CatalogosManager(private val db: AppDatabase) {
         val request = ProductosRequest(login, lista)
         val response = RetrofitClient.apiService.getProductos(request)
 
+        println("DEBUG PRODUCTOS1 EXIST REQUEST: $request")
         if (!response.isSuccessful) {
             throw Exception("Error servidor productos: ${response.code()}")
         }
 
-        val listaRaw =
-            response.body()?.ResponseProductos ?: throw Exception("Respuesta vacía de Bancos")
 
+        val listaRaw =
+            response.body()?.ResponseProductos ?: throw Exception("Respuesta vacía de Productos")
+        println("DEBUG PRODUCTOS1 EXIST RESPONSE: ${gson.toJson(listaRaw)}")
         if (listaRaw.size > 1) {
             val primerObjeto = gson.toJson(listaRaw[0])
 
