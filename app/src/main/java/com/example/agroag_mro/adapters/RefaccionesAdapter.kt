@@ -5,11 +5,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.agroag_mro.R
 import com.example.agroag_mro.models.itemPaqMO
 import com.example.agroag_mro.models.modelsUI.ProductoUI
+import java.util.Locale
 
 class RefaccionesAdapter (
     private val refacciones: MutableList<ProductoUI>,
@@ -64,32 +66,58 @@ class RefaccionesAdapter (
     //cmabiamos eltipo  RefaccionesViewHolder por RecylcerView.ViewHolader paraporintrgear los header y los items
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         if(holder is HeaderViewHolder){
+            val h2 = headers.getOrNull(1) ?: ""
             holder.col1.text = headers.getOrNull(0) ?: "Clave"
-            holder.col2.text = headers.getOrNull(1) ?: "Min"
+            
+            if (h2.isEmpty()) {
+                holder.col2.visibility = View.GONE
+                val params = holder.col3.layoutParams as LinearLayout.LayoutParams
+                params.weight = 2f
+                holder.col3.layoutParams = params
+            } else {
+                holder.col2.visibility = View.VISIBLE
+                holder.col2.text = h2
+                val params = holder.col3.layoutParams as LinearLayout.LayoutParams
+                params.weight = 1f
+                holder.col3.layoutParams = params
+            }
+            
             holder.col3.text = headers.getOrNull(2) ?: "Hr"
             holder.col4.text = headers.getOrNull(3) ?: "Unidad"
             holder.col5.text = headers.getOrNull(4) ?: "Tecnico"
-            holder.col6.text = headers.getOrNull(5) ?: " "
+            holder.col6.text = headers.getOrNull(5) ?: ""
+            
         }else if(holder is RefaccionesViewHolder){
             val refaccion = refacciones[position-1]
-            holder.articulo.text = refaccion.cve
-            holder.cantidad.text = refaccion.cant.toString()
-            holder.unidad.text = refaccion.uni
-            holder.costoUnitario.text = "$${refaccion.costuni}"
-            //calculamos el importe
-
-            System.out.println("refaccion123:"+refaccion.costuni+"cantidad:"+refaccion.cant+"importe:"+refaccion.importe)
-
-            var importe = refaccion.cant?.let { refaccion.costuni?.toDouble()?.times(it.toDouble()) }
-
-            holder.importe.text = "$${importe.toString()}"
-            holder.descripcion.text = refaccion.descripcion
-            if(refaccion.horas != null){
-                importe = refaccion.horas!!.toDouble()
-                holder.cantidad.text = ""
-                holder.costoUnitario.text = "${refaccion.minutos}"//
-                holder.importe.text = importe.toString()
+            val esManoObra = refaccion.horas != null
+            
+            if (esManoObra) {
+                holder.cantidad.visibility = View.GONE
+                val params = holder.unidad.layoutParams as LinearLayout.LayoutParams
+                params.weight = 2f
+                holder.unidad.layoutParams = params
+                
+                holder.articulo.text = refaccion.cve
+                holder.unidad.text = refaccion.uni
+                holder.costoUnitario.text = "${refaccion.minutos}"
+                holder.importe.text = "${refaccion.horas}"
+                holder.descripcion.text = refaccion.descripcion
+            } else {
+                holder.cantidad.visibility = View.VISIBLE
+                val params = holder.unidad.layoutParams as LinearLayout.LayoutParams
+                params.weight = 1f
+                holder.unidad.layoutParams = params
+                
+                holder.articulo.text = refaccion.cve
+                holder.cantidad.text = refaccion.cant.toString()
+                holder.unidad.text = refaccion.uni
+                holder.costoUnitario.text = "$${refaccion.costuni}"
+                
+                val importeTotal = (refaccion.cant ?: 0.0) * (refaccion.costuni ?: 0.0)
+                holder.importe.text = "$${String.format(Locale.US, "%.2f", importeTotal)}"
+                holder.descripcion.text = refaccion.descripcion
             }
+
             holder.itemView.setOnClickListener {
                 mostrarDialogoEdicion(holder.itemView, position - 1 )
             }

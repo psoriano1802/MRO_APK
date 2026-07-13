@@ -12,6 +12,7 @@ import android.widget.EditText
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -26,10 +27,13 @@ import com.example.agroag_mro.data.AppDatabase
 import com.example.agroag_mro.data.PantallasEntity
 import com.example.agroag_mro.data.UsuarioDao
 import com.example.agroag_mro.interfaz.RetrofitClient
+import com.example.agroag_mro.models.DoctosMROrequest
 import com.example.agroag_mro.models.Login
 import com.example.agroag_mro.models.LoginRequest
 import com.example.agroag_mro.models.OrdenItem
 import com.example.agroag_mro.models.OrdenesRequest
+import com.example.agroag_mro.models.OrdenesRequestUsuario
+import com.example.agroag_mro.models.SendOrdenes
 import com.example.agroag_mro.models.SucursalItem
 import com.example.agroag_mro.models.SucursalResponse
 import com.example.agroag_mro.models.TipoTrabajos
@@ -47,6 +51,7 @@ class ListaOrdenesActivity : AppCompatActivity() {
     private lateinit var adapter: OrdenesAdapter
     private lateinit var etfechaFinal: EditText
     private lateinit var etfechaInicial: EditText
+    private lateinit var etBrowser: EditText
     private lateinit var checkAtrasadas: CheckBox
     private lateinit var btnBuscar: Button
     //variables para base de datos
@@ -82,6 +87,7 @@ class ListaOrdenesActivity : AppCompatActivity() {
         etSucursal = findViewById(R.id.spinnerSucursal)
         etfechaFinal = findViewById(R.id.etFechaFinal)
         etfechaInicial = findViewById(R.id.etFechaInicial)
+        etBrowser = findViewById(R.id.etBrowser)
         checkAtrasadas = findViewById(R.id.checkAtrasadas)
         btnBuscar = findViewById(R.id.btnBuscar)
         recyclerView = findViewById(R.id.rvOrdenes)
@@ -134,7 +140,9 @@ class ListaOrdenesActivity : AppCompatActivity() {
                     mostrarMensajeSinPermiso("MANOOBRA")
                 }
             },
-            onEliminarClick = { item -> Toast.makeText(this, "Registra Activo: ${item.folio}", Toast.LENGTH_SHORT).show() }
+            onEliminarClick = { item ->
+                validarOrdenDocumentos(item)
+            }
         )
 
         recyclerView.adapter = adapter
@@ -276,10 +284,12 @@ class ListaOrdenesActivity : AppCompatActivity() {
                 val fechaInicial = etfechaInicial.text.toString()
                 val fechaFinal = etfechaFinal.text.toString()
                 val atrasadas = if (checkAtrasadas.isChecked) "S" else "N"
+                val browser = etBrowser.text.toString()
 
                 //mandamos el request de OrdenesRequest
                 val request = OrdenesRequest(Login(usuario.toString(), pass.toString()), fechaInicial, fechaFinal,
-                    sucursalID.toString(), atrasadas)
+                    sucursalID.toString(), atrasadas, browser)
+
                 System.out.println("request:"+request)
                 val response = RetrofitClient.apiService.getOrdenes(request)
                 System.out.println("response:"+response)
@@ -319,4 +329,62 @@ class ListaOrdenesActivity : AppCompatActivity() {
     private fun mostrarMensajeSinPermiso(accion: String) {
         Toast.makeText(this, "No tienes permiso para $accion esta orden", Toast.LENGTH_SHORT).show()
     }
+
+    private fun validarOrdenDocumentos(item: OrdenItem) {
+        lifecycleScope.launch {
+            try {
+                val request = DoctosMROrequest(Login(usuario.toString(), pass.toString()), sucursalID.toString(), item.folio.toString())
+
+                println("request $request")
+                val response = RetrofitClient.apiService.getDoctosMRO(request)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    println("DEBUG JSON doctomro recibido: $body")
+                    val okItem = body?.ResponseBusDoctosMRO?.find { it.ok != null }
+                    if (okItem?.ok == "1") {
+                        AlertDialog.Builder(this@ListaOrdenesActivity)
+                            .setTitle("Confirmación")
+                            .setMessage("¿Desea mandar la orden a 'Por Validar'?")
+                            .setPositiveButton("Aceptar") { _, _ ->
+                                enviarOrdenPorValidar(item.folio.toString())
+                            }
+                            .setNegativeButton("Cancelar", null)
+                            .show()
+                    } else {
+                        Toast.makeText(this@ListaOrdenesActivity, okItem?.msn ?: "La orden no tiene documentos relacionados", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@ListaOrdenesActivity, "Error al buscar documentos: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun enviarOrdenPorValidar(folio: String) {
+        lifecycleScope.launch {
+            try {
+                val ordenes = listOf(SendOrdenes(folio, ""))
+                val request = OrdenesRequestUsuario(Login(usuario.toString(), pass.toString()), validacion = "P", ordenes = ordenes)
+
+                println("rerquest $request")
+                val response = RetrofitClient.apiService.sendValidaOrdenesPV(request)
+
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    val okItem = body?.ResponseValidaOrdenes?.find { it.ok != null }
+                    if (okItem?.ok == "1") {
+                        Toast.makeText(this@ListaOrdenesActivity, "Orden enviada a 'Por Validar' correctamente", Toast.LENGTH_SHORT).show()
+                        cargarDatosDesdeWS()
+                    } else {
+                        Toast.makeText(this@ListaOrdenesActivity, okItem?.msn ?: "Error al validar orden", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@ListaOrdenesActivity, "Error al enviar orden: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
 }

@@ -70,7 +70,7 @@ class BusquedaRMBottomSheet(
         }
         binding.btnBuscar.setOnClickListener {
             val texto = binding.etBusqueda.text.toString()
-            if (texto.length < 3) {
+            if (texto.length < 0) {
                 binding.etBusqueda.error = "Busqueda"
                 return@setOnClickListener
             }
@@ -171,7 +171,8 @@ class BusquedaRMBottomSheet(
                                     var hr = 0.0
                                     var min = 0.0
                                     if(tipobusqueda == "2"){
-                                        hr = item.tst?.toDoubleOrNull() ?: 0.0
+                                        //hr = item.tst?.toDoubleOrNull()  ?: 0.1
+                                        hr = item.tst?.toDoubleOrNull()?.takeIf { it != 0.0 } ?: 0.1
                                         min =hr * 60.0
                                         cantidad = hr
                                         importe = "0.0"

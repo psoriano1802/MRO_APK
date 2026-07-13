@@ -34,7 +34,7 @@ object Globales{
     private const val KEY_IS_TEST = "is_test_server"
 
     const val URL_PROD ="http://144.217.255.240:8086/"  //"http://keplerqro.dnsalias.com:1970/" pruebas
-    const val URL_TEST = "http://144.217.255.240:8087/"
+    const val URL_TEST = "http://grj02.dnsalias.net:1970/"//"http://144.217.255.240:8087/"
 
     val url: String
         get() = if (isTestServer) URL_TEST else URL_PROD

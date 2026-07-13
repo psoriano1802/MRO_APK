@@ -60,7 +60,7 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(this, accion)
                 startActivity(intent)
             }
-            binding.recyclerViewMenu.layoutManager = GridLayoutManager(this, 2)
+            binding.recyclerViewMenu.layoutManager = GridLayoutManager(this, 1)
             binding.recyclerViewMenu.adapter = adapter
 
             // Configurar el escuchador de clics en el adaptador

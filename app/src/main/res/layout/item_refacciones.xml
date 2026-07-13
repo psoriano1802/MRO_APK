@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="2"
         android:text="Artículo"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textStyle="bold"
         android:textColor="#333333" />
 
@@ -27,8 +27,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:text="1.0"
-        android:inputType="numberDecimal"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textColor="#333333" />
 
     <!-- Unidad -->
@@ -39,7 +38,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:text="PZA"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textColor="#333333" />
 
     <!-- Costo Unitario -->
@@ -50,8 +49,7 @@
         android:layout_weight="2"
         android:gravity="end"
         android:text="$0.00"
-        android:inputType="numberDecimal"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textColor="#333333" />
 
     <!-- Importe -->
@@ -62,8 +60,7 @@
         android:layout_weight="2"
         android:gravity="end"
         android:text="$0.00"
-        android:inputType="numberDecimal"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textStyle="bold"
         android:textColor="#FF0000" />
 
@@ -72,10 +69,12 @@
         android:id="@+id/tv_descripcion"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="2"
-        android:gravity="center"
+        android:layout_weight="4"
+        android:gravity="start|center_vertical"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
         android:text="Descripcion articulo"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textColor="#333333" />
 
 </LinearLayout>

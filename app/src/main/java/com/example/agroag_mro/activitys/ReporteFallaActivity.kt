@@ -60,6 +60,7 @@ class ReporteFallaActivity: AppCompatActivity() {
     private lateinit var tvActvio: TextView
     private lateinit var tv_activocve: TextView
     private lateinit var tvFolio: TextView
+    private lateinit var tvUser: TextView
     private lateinit var etFalla: EditText
     private lateinit var tvFecha: TextView
     private lateinit var spinnerMantenimiento: Spinner
@@ -97,11 +98,15 @@ class ReporteFallaActivity: AppCompatActivity() {
             )
             insets
         }
+        //inicializamos la base de datos para obtenes informacion del usaurio
+        db = AppDatabase.getDatabase(this)
+        loginUserDao = db.usuarioDao()
 
         usuario = Prefs(this).obtenerUsuario().first.toString()
         pass = Prefs(this).obtenerUsuario().second.toString()
         reporteGenerator = ReportePDFGenerator(this)
         reportePDFGenerator2 = ReportePDFGenerator2(this)
+
         // Inicializar views
         initViews()
 
@@ -116,6 +121,7 @@ class ReporteFallaActivity: AppCompatActivity() {
 
         // Configurar listeners de botones
         setupButtonListeners()
+        obtenerUser()
     }
 
     //funcion para inicializar los views
@@ -125,6 +131,7 @@ class ReporteFallaActivity: AppCompatActivity() {
         tvFolio = findViewById(R.id.tv_folio)
         etFalla = findViewById(R.id.et_falla)
         tvFecha = findViewById(R.id.tv_fecha)
+        tvUser= findViewById(R.id.tv_usuario)
 
         spinnerMantenimiento = findViewById(R.id.spinner_mantenimiento)
         spinnerTipoTrabajo = findViewById(R.id.spinner_tipo_trabajo)
@@ -535,6 +542,15 @@ class ReporteFallaActivity: AppCompatActivity() {
             .show()
     }
 
+    //funcion para obtener el usuario
+    fun obtenerUser(){
+        lifecycleScope.launch{
+            val usrSess = loginUserDao.obtenerUsuario(usuario.toString())?.nombre.toString()
+            tvUser.text = usrSess
+        }
+
+
+    }
     //funcion para limpiar el formulario
     private fun limpiarFormulario() {
         tvActvio.text = ""

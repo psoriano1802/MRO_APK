@@ -4,6 +4,7 @@ import com.example.agroag_mro.models.ActivoRequest
 import com.example.agroag_mro.models.ActivosResponse
 import com.example.agroag_mro.models.AltaDoctosRequest
 import com.example.agroag_mro.models.AltaDoctosResponse
+import com.example.agroag_mro.models.DoctosMROrequest
 import com.example.agroag_mro.models.DocumentosResponse
 import com.example.agroag_mro.models.FolioResponse
 import com.example.agroag_mro.models.LoginRequest
@@ -20,6 +21,7 @@ import com.example.agroag_mro.models.ProductosRequest
 import com.example.agroag_mro.models.ProductosResponse
 import com.example.agroag_mro.models.ReporteFallaRequest
 import com.example.agroag_mro.models.ReporteFallaResponse
+import com.example.agroag_mro.models.ResponseBusDoctosMRO
 import com.example.agroag_mro.models.ResponseValidaOrdenes
 import com.example.agroag_mro.models.SucursalResponse
 import com.example.agroag_mro.models.TecnicosResponse
@@ -116,4 +118,14 @@ interface ApiService {
     @Headers("SOAPAction:Valida_Ordenes")
     @POST("/api_kepler_mro")
     suspend fun sendValidaOrdenes(@Body request: OrdenesRequestUsuario): Response<ResponseValidaOrdenes>
+
+    //buscador de ordenes con documentos relacionados
+    @Headers("SOAPAction:Bus_DoctosMRO")
+    @POST("/api_kepler_mro")
+    suspend fun getDoctosMRO(@Body request: DoctosMROrequest): Response<ResponseBusDoctosMRO>
+
+    //valida ordenes por validar
+    @Headers("SOAPAction:Valida_OrdPV")
+    @POST("/api_kepler_mro")
+    suspend fun sendValidaOrdenesPV(@Body request: OrdenesRequestUsuario): Response<ResponseValidaOrdenes>
 }

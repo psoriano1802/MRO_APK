@@ -33,7 +33,7 @@ class OrdenesAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = lista[position]
-        holder.tvFolio.text = "Folio: ${item.folio}"
+        holder.tvFolio.text = "Folio: ${item.folio} / ${item.activos}"
         holder.tvActivo.text = "Activo: ${item.nomAct}"
         holder.tvTipo.text = "Tipo: ${item.tipo}"
 

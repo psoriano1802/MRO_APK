@@ -57,3 +57,11 @@ data class ValidaOrdenItem(
     @SerializedName("Err")  val err: String?= null
 )
 
+//para busqueda de documento relacionados a ordenes MRO
+data class ResponseBusDoctosMRO(
+    val ResponseBusDoctosMRO: List<BuscaOrdenMRO>?
+)
+data class BuscaOrdenMRO(
+    val ok: String? = null,
+    val msn: String? = null
+)

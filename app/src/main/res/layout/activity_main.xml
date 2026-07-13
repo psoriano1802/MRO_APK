@@ -13,7 +13,9 @@
         android:layout_height="match_parent"
         android:contentDescription="Opciones"
         android:padding="16dp"
-        tools:listitem="@layout/item_menu"/>
+        tools:layout_editor_absoluteX="0dp"
+        tools:layout_editor_absoluteY="0dp"
+        tools:listitem="@layout/item_menu" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

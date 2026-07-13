@@ -17,6 +17,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.agroag_mro.R
 import com.example.agroag_mro.adapters.DocumentosAdapter
 import com.example.agroag_mro.adapters.ResultadoAdapter
+import com.example.agroag_mro.data.AppDatabase
+import com.example.agroag_mro.data.UsuarioDao
 import com.example.agroag_mro.interfaz.RetrofitClient.apiService
 import com.example.agroag_mro.models.Login
 import com.example.agroag_mro.models.OrdenItem
@@ -43,7 +45,8 @@ class ValidaOrdenActivity : AppCompatActivity() {
     private lateinit var user: String
     private lateinit var pass: String
 
-
+    private lateinit var loginUserDao: UsuarioDao
+    private lateinit var db: AppDatabase
     private lateinit var documentosAdapter: DocumentosAdapter
     private val listaDocumentos = mutableListOf<DocumentoUI>()
 
@@ -62,11 +65,16 @@ class ValidaOrdenActivity : AppCompatActivity() {
             )
             insets
         }
+        //inicializamos la base de datos para obtenes informacion del usaurio
+        db = AppDatabase.getDatabase(this)
+        loginUserDao = db.usuarioDao()
+
 
         inicializarVistas()
         configurarRecyclerView()
         cargarDatosIniciales()
         configurarEventos()
+        obtenerUser()
     }
 
     private fun inicializarVistas() {
@@ -187,7 +195,7 @@ class ValidaOrdenActivity : AppCompatActivity() {
                         val sendOrdenes = documentosSeleccionados.map {
                             SendOrdenes(it.documento, it.comentario)
                         }
-                        val request = OrdenesRequestUsuario(Login(user.toString(), pass.toString()), sendOrdenes)
+                        val request = OrdenesRequestUsuario(Login(user.toString(), pass.toString()), null,sendOrdenes)
                         //convertimos el request a json para imprimirlo en consola
                         val jsonEnviado = com.google.gson.Gson().toJson(request)
                         println("DEBUG JSON ENVIADO: $jsonEnviado")
@@ -229,6 +237,14 @@ class ValidaOrdenActivity : AppCompatActivity() {
 
             }
             .show()
+
+
+    }
+    fun obtenerUser(){
+        lifecycleScope.launch{
+            val usrSess = loginUserDao.obtenerUsuario(user.toString())?.nombre.toString()
+            tvUsuario.text = usrSess
+        }
 
 
     }
