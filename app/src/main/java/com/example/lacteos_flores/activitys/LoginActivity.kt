@@ -157,6 +157,7 @@ class LoginActivity : AppCompatActivity() {
 
         withContext(Dispatchers.Main) {
             if (hasConnection) {
+
                 Toast.makeText(this@LoginActivity, "Usuario o contraseña incorrectas", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this@LoginActivity, "Sin conexión y credenciales locales no encontradas", Toast.LENGTH_SHORT).show()

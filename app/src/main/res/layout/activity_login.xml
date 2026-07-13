@@ -61,7 +61,7 @@
         android:id="@+id/txtversion"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="v1.01726"
+        android:text="v1.P1307"
         android:textAlignment="gravity"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

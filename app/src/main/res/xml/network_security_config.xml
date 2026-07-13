@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">keplerqro.dnsalias.com</domain>
+        <domain includeSubdomains="true">kepler.lacteosflores.com</domain>
         <domain includeSubdomains="true">grj02.dnsalias.net</domain>
     </domain-config>
 </network-security-config>
