@@ -33,9 +33,13 @@ class OrdenesAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = lista[position]
-        holder.tvFolio.text = "Folio: ${item.folio} / ${item.activos}"
-        holder.tvActivo.text = "Activo: ${item.nomAct}"
-        holder.tvTipo.text = "Tipo: ${item.tipo}"
+        // Limpiamos posibles saltos de línea extraños (\r) para evitar problemas de renderizado
+        val folioText = item.folio ?: item.folOrd ?: "N/A"
+        val activoText = item.nomAct?.replace("\r", " ") ?: "N/A"
+        
+        holder.tvFolio.text = "Folio: $folioText / ${item.activos ?: ""}"
+        holder.tvActivo.text = "Activo: $activoText"
+        holder.tvTipo.text = "Tipo: ${item.tipo ?: ""}"
 
         holder.btnVer.setOnClickListener { onVerClick(item) }
         holder.btnEditar.setOnClickListener { onEditarClick(item) }

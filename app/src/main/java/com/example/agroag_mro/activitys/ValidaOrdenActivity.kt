@@ -199,7 +199,7 @@ class ValidaOrdenActivity : AppCompatActivity() {
                         //convertimos el request a json para imprimirlo en consola
                         val jsonEnviado = com.google.gson.Gson().toJson(request)
                         println("DEBUG JSON ENVIADO: $jsonEnviado")
-                        System.out.println("orderxusr:"+request)
+                        System.out.println("validaorden:"+request)
                         val response = apiService.sendValidaOrdenes(request)
                         //mostramos el resultado de la validacion
                         if (response.isSuccessful) {

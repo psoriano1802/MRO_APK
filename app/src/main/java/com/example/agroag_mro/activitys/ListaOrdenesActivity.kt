@@ -306,6 +306,7 @@ class ListaOrdenesActivity : AppCompatActivity() {
                             for (orden in ordenesItems) {
                                 //ord.add(OrdenItem(null,orden.folio!!,null, orden.nomAct!!,null, orden.tipo!!,null,null,null,null,null,null,null,null,null))
                                 listaOrdenes.add(OrdenItem(null,orden.folio!!,orden.activos!!, orden.nomAct!!,orden.suc!!, orden.tipo!!,null,null,orden.cc!!,orden.gen!!,orden.nat!!,orden.grp!!,orden.tip!!,null,orden.paq!!,null))
+
                             }
                            // listaOrdenes.addAll(ord)
                             System.out.println("listaOrdenes:"+listaOrdenes)
