@@ -24,95 +24,95 @@ import retrofit2.http.POST
 
 interface ApiService {
     @Headers("SOAPAction:login")
-    @POST("/api_kepler_lacteos") // login lacteos
+    @POST("/api_kepler_gen") // login lacteos
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
     //ws para manejo de jornada
     //iniciar jornada
     @Headers("SOAPAction:iniciaDia")
-    @POST("/api_kepler_lacteos") // iniciar dia de labores
+    @POST("/api_kepler_gen") // iniciar dia de labores
     suspend fun sendIniDia(@Body request: ubicacionRequest): Response<IniciaDiaResponse>
 
     //termina dia
     @Headers("SOAPAction:terminaDia")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun sendTerDia(@Body request: ubicacionRequest): Response<TerminaDiaResponse>
 
     //valida Dia
     @Headers("SOAPAction:ValidaDia")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun validaDia(@Body request: LoginRequest): Response<ValidaDiaResponse>
 
     //valida Recarga
     @Headers("SOAPAction:validaRecarga")
-    @POST("/api_kepler_lacteos")
+    @POST("/api_kepler_gen")
     suspend fun validaRecarga(@Body request: LoginRequest): Response<ValidaRecargaResponse>
 
     //para el manejo de las ventas
     //documentos
     @Headers("SOAPAction:Documentos")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun getDoctos(@Body request: LoginRequest): Response<ResponseDocumentos>
 
     //bancos
     @Headers("SOAPAction:bancos")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun getBancos(@Body request: LoginRequest): Response<BancosResponse>
 
     //paridades
     @Headers("SOAPAction:paridades")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun getParidades(@Body request: LoginRequest): Response<ResponseParidades>
 
     //gastos
     @Headers("SOAPAction:Cat_gastos")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun getGastos(@Body request: LoginRequest): Response<GastosResponse>
 
     //productos
     @Headers("SOAPAction:productos")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun getProductos(@Body request: ProductosRequest): Response<ProductosResponse>
 
     //existecias productos
     @Headers("SOAPAction:existencia")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun getExistencias(@Body request: existenciaReques): Response<ResponseExistencia>
 
     //controles auxiliares
     @Headers("SOAPAction:control_Aux")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun getAuxiliares(@Body request: LoginRequest): Response<ControlAuxResponse>
 
     //clientes
     @Headers("SOAPAction:Get_Clientes")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun getClientes(@Body request: LoginRequest): Response<GetClientesResponse>
 
     //ListaPrecios
     @Headers("SOAPAction:ListaPrecios")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun getListaProd(@Body request: LoginRequest): Response<ListaPreciosResponse>
 
     //Cartera
     @Headers("SOAPAction:cartera")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun getCartera(@Body request: LoginRequest): Response<CarteraResponse>
 
     //Cat Tmc
     @Headers("SOAPAction:Cat_TMC")
-    @POST("/api_kepler_lacteos")
+    @POST("/api_kepler_gen")
     suspend fun getCatTmc(@Body request: CatTmcRequest): Response<ResponseCatTmc>
 
 
     //envio de documentos al servidor
     @Headers("SOAPAction:altaDoc")
-    @POST("/api_kepler_lacteos") // reemplaza con la URL relativa correcta
+    @POST("/api_kepler_gen") // reemplaza con la URL relativa correcta
     suspend fun sendDoctos(@Body request: AltaDoctosRequest): Response<AltaDoctosResponse>
 
     //envio de gastos
     @Headers("SOAPAction:Reg_gastos")
-    @POST("/api_kepler_lacteos")
+    @POST("/api_kepler_gen")
     suspend fun sendAltaGasto(@Body request: AltaGastoRequest): Response<AltaGastoResponse>
 
 

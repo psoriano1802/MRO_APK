@@ -21,11 +21,11 @@ android {
     productFlavors {
         create("beta"){
             dimension = "environment"
-            applicationId = "com.example.lacteos_flores.beta"
+            applicationId = "com.example.lacteos_flores.gen"
             versionNameSuffix = "-BETA"
             buildConfigField("String","ENVIROMENT","\"BETA\"")
             buildConfigField("String","BASE_URL", "\"http://grj02.dnsalias.net:1960/\"")//keplerqro.dnsalias.com
-            resValue("string", "app_name", "LF Ruta")
+            resValue("string", "app_name", "Ventas Movil")
         }
         create("prod"){
             dimension = "environment"
