@@ -369,8 +369,16 @@ class ReporteFallaActivity: AppCompatActivity() {
 
     //funcion para guardar el reporte
     private fun guardarReporte() {
+        // Validar conexión a internet
+        if (!Globales.isNetworkAvailable(this)) {
+            showToast("No hay conexión a internet. Verifique su red.")
+            btnGuardar.isEnabled = true
+            return
+        }
+
         // Validar campos obligatorios
         if (!validarCampos()) {
+            btnGuardar.isEnabled = true
             return
         }
 
