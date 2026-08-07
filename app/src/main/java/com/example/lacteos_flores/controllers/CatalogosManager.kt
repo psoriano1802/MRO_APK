@@ -719,7 +719,7 @@ class CatalogosManager(private val db: AppDatabase) {
         }
 
         val listaRaw =
-            response.body()?.ListaPreciosResponse ?: throw Exception("Respuesta vacía de Bancos")
+            response.body()?.ListaPreciosResponse ?: throw Exception("Respuesta vacía de Listas")
 
         if (listaRaw.size > 1) {
             val primerObjeto = gson.toJson(listaRaw[0])
